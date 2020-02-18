@@ -1,0 +1,6 @@
+field,index,display
+title,true,true
+date,true,true
+guest_author,true,false
+guest_artist,true,true
+program_artists,true,true

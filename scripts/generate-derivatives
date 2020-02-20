@@ -10,7 +10,7 @@ if [ "$#" -lt 1 ]; then
 fi
 
 # Trim any trailing slash from the objects dir path.
-OBJECTS_DIR=${1%/}
+OBJECTS_DIR=`pwd`/${1%/}
 THUMBS_DIR=$OBJECTS_DIR/thumbs
 SMALL_DIR=$OBJECTS_DIR/small
 
@@ -47,9 +47,9 @@ for F_PATH in $OBJECTS_DIR/*; do
 
     # Define the file-type-specific command prefix.
     if [ "$F_TYPE" = "image" ]; then
-        MAGICK_CMD="magick \"$F_PATH\""
+        MAGICK_CMD="magick $F_PATH"
     elif [ "$F_TYPE" = "pdf" ]; then
-        MAGICK_CMD="magick \"$F_PATH\"[0]"
+        MAGICK_CMD="magick $F_PATH[0]"
     fi
 
     # Get th filename without any leading path and extension.

@@ -9,7 +9,7 @@ url: https://www.lib.uidaho.edu
 baseurl: /demo/moscon
 
 # url to objects folder
-digital-objects: https://de-collectionbuilder-001.nyc3.cdn.digitaloceanspaces.com
+digital-objects: https://lchs.sfo2.cdn.digitaloceanspaces.com
 
 # location of code
 source-code: https://github.com/CollectionBuilder
@@ -50,7 +50,7 @@ google-analytics-id:
 # add liquid profiler to id bottlenecks
 # profile: true
 
-exclude: [docs/, Rakefile, README.md, LICENSE, Dockerfile, docker-compose.yml, docker-compose.production.yml]
+exclude: [docs/, Rakefile, README.md, LICENSE, objects/, scripts/, Dockerfile, docker-compose*.yml]
 
 # compress CSS output
 sass:

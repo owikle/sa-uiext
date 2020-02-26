@@ -34,4 +34,6 @@ WORKDIR /app
 COPY . .
 
 EXPOSE 4000
-ENTRYPOINT ["jekyll", "s", "-H", "0.0.0.0"]
+
+ENTRYPOINT ["jekyll"]
+CMD ["s", "-H", "0.0.0.0"]

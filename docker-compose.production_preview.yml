@@ -7,4 +7,4 @@ services:
       service: collectionbuilder
     environment:
       JEKYLL_ENV: production
-    command: --config=_config.production_preview.yml
+    command: ["s", "-H", "0.0.0.0", "--config=_config.production_preview.yml"]

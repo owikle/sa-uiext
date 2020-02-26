@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ "$#" -lt 1 ]; then
+    echo "usage: `basename $0` OBJECTS_DIR [EXTRA \"aws s3 sync\" ARGS] "
+    exit 1
+fi
+
+# Trim any trailing slash from the objects dir path.
+OBJECTS_DIR=`pwd`/${1%/}
+
+aws --endpoint-url=https://$DO_ENDPOINT s3 sync --acl=public-read $OBJECTS_DIR/ s3://$DO_SPACE/ ${@:2}

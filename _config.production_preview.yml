@@ -9,7 +9,7 @@ url: http://0.0.0.0:4000
 baseurl: /demo/moscon
 
 # url to objects folder
-digital-objects: objects
+digital-objects: https://de-collectionbuilder-001.nyc3.cdn.digitaloceanspaces.com
 
 # location of code
 source-code: https://github.com/CollectionBuilder

@@ -1,0 +1,18 @@
+version: '2.4'
+services:
+  collectionbuilder:
+    build: .
+    environment:
+      JEKYLL_ENV: development
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - 4000:4000
+    network_mode: host
+  #   links:
+  #     - elasticsearch
+  # elasticsearch:
+  #   image: elasticsearch:7.4.2
+  #   environment:
+  #   - discovery.type=single-node

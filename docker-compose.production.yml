@@ -1,0 +1,10 @@
+version: '2.4'
+
+services:
+  collectionbuilder:
+    extends:
+      file: docker-compose.yml
+      service: collectionbuilder
+    environment:
+      JEKYLL_ENV: production
+    command: --config=_config.production.yml

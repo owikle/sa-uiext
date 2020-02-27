@@ -3,7 +3,7 @@
 
 # URL variables
 # site domain
-url: http://0.0.0.0:4000
+url:
 # location on the domain
 # e.g. /digital/hjccc
 baseurl: /demo/moscon
@@ -50,7 +50,7 @@ google-analytics-id:
 # add liquid profiler to id bottlenecks
 # profile: true
 
-exclude: [docs/, Rakefile, README.md, LICENSE, objects/, scripts/, Dockerfile, docker-compose*.yml]
+exclude: [docs/, Rakefile, README.md, LICENSE, scripts/, Dockerfile, docker-compose*.yml]
 
 # compress CSS output
 sass:

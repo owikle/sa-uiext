@@ -7,4 +7,4 @@ services:
       service: collectionbuilder
     environment:
       JEKYLL_ENV: production
-    command: ["build", "--config=_config.production.yml"]
+    command: ["build", "--config=_config.yml,_config.production.yml"]

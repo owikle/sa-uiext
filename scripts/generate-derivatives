@@ -2,6 +2,7 @@
 
 THUMBS_SIZE=${THUMBS_SIZE:-"300x300"}
 SMALL_SIZE=${SMALL_SIZE:-"800x800"}
+DENSITY=${DENSITY:-"300"}
 MISSING=${MISSING:-"true"}
 
 if [ "$#" -lt 1 ]; then
@@ -49,7 +50,7 @@ for F_PATH in $OBJECTS_DIR/*; do
     if [ "$F_TYPE" = "image" ]; then
         MAGICK_CMD="magick $F_PATH"
     elif [ "$F_TYPE" = "pdf" ]; then
-        MAGICK_CMD="magick $F_PATH[0]"
+        MAGICK_CMD="magick -density $DENSITY $F_PATH[0]"
     fi
 
     # Get th filename without any leading path and extension.
@@ -62,7 +63,7 @@ for F_PATH in $OBJECTS_DIR/*; do
         $MAGICK_CMD -resize $THUMBS_SIZE -flatten $THUMB_F;
     fi
 
-    # Generate the thumb image.
+    # Generate the small image.
     SMALL_F="$SMALL_DIR/${BASE_F_NAME}_sm.jpg"
     if [ "$MISSING" != "true" ] || [ ! -f "$SMALL_F" ]; then
         echo "Creating: $SMALL_F";

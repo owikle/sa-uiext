@@ -5,18 +5,19 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && \
     apt upgrade -y && \
     apt install -y \
+    awscli \
     build-essential \
-    ruby-full \
-    ruby-dev \
-    rubygems \
-    git \
-    wget \
+    curl \
     ghostscript \
+    git \
     libgs-dev \
-    awscli
+    ruby-dev \
+    ruby-full \
+    rubygems \
+    xpdf
 
 WORKDIR /tmp/
-RUN wget https://imagemagick.org/download/ImageMagick-7.0.9-26.tar.gz && \
+RUN curl https://imagemagick.org/download/ImageMagick-7.0.9-26.tar.gz -o ImageMagick-7.0.9-26.tar.gz && \
     tar xf ImageMagick-7.0.9-26.tar.gz && \
     cd ImageMagick-7.0.9-26/ && \
     ./configure --with-gslib=yes && \

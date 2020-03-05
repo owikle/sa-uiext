@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+"""
+From the collection metadata and extracted document text files, generate an
+Elasticsearch Bulk API input file as described here:
+https://www.elastic.co/guide/en/elasticsearch/reference/7.6/docs-bulk.html
+
+"""
+
+import argparse
+import csv
+import json
+import os
+
+
+collection_name_to_index_name = lambda s: '_'.join(s.lower().split(' '))
+
+
+def main(metadata_fh, text_path, output_fh):
+    metadata_reader = csv.DictReader(metadata_fh)
+
+    num_items = 0
+    for item in metadata_reader:
+        filename = item['filename']
+        text_path = os.path.join(text_path, '{}.text'.format(filename))
+        if os.path.exists(text_path):
+            full_text = open(text_path, 'r', encoding='utf-8').read()
+            item['full_text'] = full_text
+
+        # Write the action_and_meta_data line.
+        doc_id = item['objectid']
+        index_name = collection_name_to_index_name(item['digital_collection'])
+        output_fh.write(
+            '{{"index": {{"_index": "{}", "_id": "{}"}}}}\n'
+            .format(index_name, doc_id)
+        )
+
+        # Write the optional_source line.
+        output_fh.write('{}\n'.format(json.dumps(item)))
+        num_items += 1
+
+    print('Wrote {} items to: {}'.format(num_items, output_fh.name))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('metadata_file', type=argparse.FileType('r'))
+    parser.add_argument('extracted_text_dir')
+    parser.add_argument('output_file', type=argparse.FileType('w'))
+    args = parser.parse_args()
+
+    main(args.metadata_file, args.extracted_text_dir, args.output_file)

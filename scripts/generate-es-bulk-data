@@ -21,9 +21,9 @@ def main(metadata_fh, text_path, output_fh):
     num_items = 0
     for item in metadata_reader:
         filename = item['filename']
-        text_path = os.path.join(text_path, '{}.text'.format(filename))
-        if os.path.exists(text_path):
-            full_text = open(text_path, 'r', encoding='utf-8').read()
+        item_text_path = os.path.join(text_path, '{}.text'.format(filename))
+        if os.path.exists(item_text_path):
+            full_text = open(item_text_path, 'r', encoding='utf-8').read()
             item['full_text'] = full_text
 
         # Write the action_and_meta_data line.

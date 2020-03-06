@@ -17,5 +17,7 @@ services:
     image: elasticsearch:7.6.0
     environment:
     - discovery.type=single-node
+    - http.cors.enabled=true
+    - http.cors.allow-origin=*
     ports:
       - 9200:9200

@@ -53,8 +53,11 @@ for F_PATH in $OBJECTS_DIR/*; do
         MAGICK_CMD="magick -density $DENSITY $F_PATH[0]"
     fi
 
-    # Get th filename without any leading path and extension.
+    # Get the filename without any leading path and extension.
     BASE_F_NAME=`basename -s .$EXT $F_PATH`
+
+    # Lowercase the filename.
+    BASE_F_NAME=`echo $BASE_F_NAME | tr '[:upper:]' '[:lower:]'`
 
     # Generate the thumb image.
     THUMB_F="$THUMBS_DIR/${BASE_F_NAME}_th.jpg"

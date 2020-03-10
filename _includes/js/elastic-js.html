@@ -1,0 +1,110 @@
+{%- assign fields = site.data.config-search -%}
+<script>
+
+const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
+
+async function doSearch (q) {
+  let query
+
+  // Build the basic query.
+  if (q === "") {
+    // Do a match_all query.
+    query = {
+      query: {
+        match_all: {}
+      }
+    }
+  } else {
+    // Do a phrase_prefix query.
+    query = {
+      query: {
+        multi_match: {
+          query: q,
+          type: "phrase_prefix",
+          fields: [
+            {% assign indexed = fields | where: 'index','true' %}
+            {% for f in indexed %}
+            "{{ f.field }}",
+            {% endfor %}
+            "full_text.raw",
+          ]
+        }
+      }
+    }
+  }
+
+  // Add any aggregations.
+  {% assign faceted = fields | where: 'facet','true' %}
+  query.aggs = {
+    {% for f in faceted %}
+    {{ f.field }}: {
+      terms: {
+        field: "{{ f.field }}.keyword"
+      }
+    },
+    {% endfor %}
+  }
+
+  // Specify which document fields we want returned.
+  query._source = [
+    "objectid",
+    {% for f in fields %}
+    "{{ f.field }}",
+    {% endfor %}
+  ]
+
+  const response = await fetch(
+    ES_SEARCH_URL,
+    {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(query)
+    }
+  )
+  return await response.json()
+}
+
+
+/* search function */
+async function elastic_search (q) {
+  var resultdiv = $('#results');
+  var query = $('input#search').val();//.toLowerCase();
+
+  const response = await doSearch(q)
+
+  resultdiv.empty();
+  resultdiv.prepend('<tr><td><h4 class="mt-3">' + response.hits.total.value + ' Result(s) found</h4></td></tr>');
+  for (let hit of response.hits.hits) {
+    const item = hit._source
+    var searchitem =
+      '<tr>'+
+          '<td class="">' +
+            {% assign display = fields | where: 'display','true' %}
+            {% for d in display %}
+            {% if forloop.first %}
+            '<p class="h4"><a href="{{ "/items/" | relative_url }}' + item.objectid + '.html">' + item.{{ fields[0].field }}  + '</a></p>' +
+            '<p class="ml-3">' +
+              {% else %}
+              item.{{ d.field }} + '<br> ' +
+              {% endif %}{% endfor %}
+            '</p></td>' +
+      '</tr>';
+    resultdiv.append(searchitem);
+  }
+}
+
+/* init search box and get query string */
+$(document).ready(function() {
+  $('input#search').on('keyup', e => {
+    elastic_search(e.target.value)
+  })
+  if (window.location.search) {
+    var queryString = decodeURIComponent(window.location.search.substring(1).split("=")[1]);
+    $('input#search').val(queryString);
+    elastic_search(queryString);
+  }
+});
+</script>

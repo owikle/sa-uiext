@@ -1,7 +1,9 @@
 ---
-layout: page 
+layout: page
 ---
 
+{% if site.elasticsearch-host == "" %}
+<!-- lunr.js layout -->
 <!-- Button trigger modal -->
 <button type="button" class="btn btn-primary float-right" data-toggle="modal" data-target="#operators">Search Operators!</button>
 <!-- Modal -->
@@ -35,3 +37,15 @@ layout: page
     <p class="text-muted">Fuzzy search powered by <a href="https://lunrjs.com/" rel="noopener" target="_blank">Lunr.js</a>. <em>May take a second to load large collections!</em></p>
     {% if site.data.theme.google-cse-id %}<p class="text-muted">Alternatively, try <a href="{{ '/google-search/' | absolute_url }}">Google CSE</a> site search.</p>{% endif %}
 </div>
+
+
+{% else %}
+
+
+<!-- Elasticsearch layout -->
+<div class="ml-3">
+  <input type="text" id="search" class="form-control" placeholder="Enter your search term...">
+  <table id="results" class="table table-responsive"></table>
+</div>
+
+{% endif %}

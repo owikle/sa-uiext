@@ -43,9 +43,16 @@ layout: page
 
 
 <!-- Elasticsearch layout -->
-<div class="ml-3">
-  <input type="text" id="search" class="form-control" placeholder="Enter your search term...">
-  <table id="results" class="table table-responsive"></table>
-</div>
+<table>
+  <tr>
+    <td id="facets" style="vertical-align: top;"></td>
+    <td>
+      <div class="ml-3">
+        <input type="text" id="search" class="form-control" placeholder="Enter your search term...">
+        <table id="results" class="table table-responsive"></table>
+      </div>
+    </td>
+  </tr>
+</table>
 
 {% endif %}

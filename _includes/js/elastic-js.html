@@ -98,18 +98,83 @@ async function doSearch (q) {
 }
 
 
+function FacetEl (facet, buckets) {
+  const formatFacetName = s =>
+        s.replace('_', ' ').replace(/\b[a-z]/g, (x) => x.toUpperCase())
+
+  const el = $(`
+  <div style="font-size: 14px; border: solid #ddd 1px; margin-top: 2em;">
+    <h1 style="font-size: 1em; background-color: #ddd; padding: .3em; font-weight: bold;">
+      ${formatFacetName(facet)}
+    </h1>
+    ${buckets.map(o => `
+      <div style="white-space: nowrap; color: #444; padding: .1em .5em; border-bottom: solid #eee 1px; position: relative;" data-facet="${facet}" data-key="${o.key}">
+        <span style="white-space: nowrap; margin-right: 2em;">
+          ${o.key.length ? o.key : '&lt;unknown&gt;'}
+        </span>
+        <span style="position: absolute; right: 1em;">${o.doc_count}</span>
+      </div>
+    `).join('')}
+  </div>
+`)
+
+  return el
+}
+
+let facetsClickHandler
+
+function renderFacets (aggregations) {
+  const facetsEl = $('#facets')
+  facetsEl.empty()
+
+  const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
+  for (let facet of facets) {
+    if (!aggregations[facet]) {
+      continue
+    }
+    facetsEl.append(FacetEl(facet, aggregations[facet].buckets))
+  }
+
+  // Add the click handler is necessary.
+  if (!facetsClickHandler) {
+    facetsClickHandler = e => {
+      const target = e.target.parentElement
+      if (target.dataset.hasOwnProperty('facet')) {
+        const facetName = target.dataset.facet
+        const facetValue = target.dataset.key
+
+        const params = new URLSearchParams(location.search)
+        const paramKey = `${facetName}[]`
+        let paramVals = params.getAll(paramKey)
+        if (paramVals.includes(paramKey)) {
+          paramVals.pop(facetValue)
+        } else {
+          paramVals.push(facetValue)
+        }
+        params.delete(paramKey)
+        paramVals.forEach(v => params.append(paramKey, v))
+        location.search = `?${params.toString()}`
+      }
+    }
+    facetsEl.on('click', facetsClickHandler)
+  }
+}
+
+
 /* search function */
-async function elastic_search (q) {
+async function elastic_search (searchParams) {
+  const query = searchParams.get('q')
   var resultdiv = $('#results');
-  var query = $('input#search').val();//.toLowerCase();
 
   resultdiv.empty();
 
-  const response = await doSearch(q)
+  const response = await doSearch(query)
   if (response === null) {
     resultdiv.append('Search failed. Please contact your administrator.')
     return
   }
+
+  renderFacets(response.aggregations)
 
   resultdiv.prepend('<tr><td><h4 class="mt-3">' + response.hits.total.value + ' Result(s) found</h4></td></tr>');
   for (let hit of response.hits.hits) {
@@ -137,9 +202,10 @@ $(document).ready(function() {
     elastic_search(e.target.value)
   })
   if (window.location.search) {
-    var queryString = decodeURIComponent(window.location.search.substring(1).split("=")[1]);
+    const searchParams = new URLSearchParams(location.search)
+    const queryString = searchParams.get('q')
     $('input#search').val(queryString);
-    elastic_search(queryString);
+    elastic_search(searchParams);
   }
 });
 </script>

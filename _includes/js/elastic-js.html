@@ -4,6 +4,9 @@
 const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
 
 async function doSearch (q) {
+  /* Perform the search and return the response, or return null if something
+   goes wrong (e.g. server not reachable, response not JSON, etc.)
+   */
   let query
 
   // Build the basic query.
@@ -53,18 +56,45 @@ async function doSearch (q) {
     {% endfor %}
   ]
 
-  const response = await fetch(
-    ES_SEARCH_URL,
-    {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(query)
+  let fetchRespons
+  try {
+    fetchResponse = await fetch(
+      ES_SEARCH_URL,
+      {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(query)
+      }
+    )
+  } catch (e) {
+    return null
+  }
+
+  let searchResponse
+  // If the content is not JSON, abort, otherwise attempt to decode it.
+  if (!fetchResponse.headers.get('Content-Type')
+      .startsWith('application/json')) {
+    return null
+  } else {
+    try {
+      searchResponse = await fetchResponse.json()
+    } catch (e) {
+      return null
     }
-  )
-  return await response.json()
+  }
+
+  if (!fetchResponse.ok) {
+    // If it looks like an ES error, print the 'reason' to the console.
+    if (searchResponse.error && searchResponse.error.reason) {
+      console.error(`Search error: ${searchResponse.error.reason}`)
+    }
+    return null
+  }
+
+  return searchResponse
 }
 
 
@@ -73,9 +103,14 @@ async function elastic_search (q) {
   var resultdiv = $('#results');
   var query = $('input#search').val();//.toLowerCase();
 
-  const response = await doSearch(q)
-
   resultdiv.empty();
+
+  const response = await doSearch(q)
+  if (response === null) {
+    resultdiv.append('Search failed. Please contact your administrator.')
+    return
+  }
+
   resultdiv.prepend('<tr><td><h4 class="mt-3">' + response.hits.total.value + ' Result(s) found</h4></td></tr>');
   for (let hit of response.hits.hits) {
     const item = hit._source

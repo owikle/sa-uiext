@@ -1,0 +1,9 @@
+#!/bin/bash
+
+
+if [ "$#" -ne 2 ]; then
+    echo "usage: `basename $0` ES_INDEX_NAME ES_INDEX_SETTINGS_FILE"
+    exit 1
+fi
+
+curl -H "Content-Type: application/json" -XPUT "elasticsearch:9200/$1" --data-binary @$2

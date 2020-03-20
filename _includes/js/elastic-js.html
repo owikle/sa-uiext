@@ -42,7 +42,7 @@ async function doSearch (q) {
     {% for f in faceted %}
     {{ f.field }}: {
       terms: {
-        field: "{{ f.field }}.keyword"
+        field: "{{ f.field }}"
       }
     },
     {% endfor %}

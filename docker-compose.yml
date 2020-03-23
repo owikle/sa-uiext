@@ -10,11 +10,4 @@ services:
     ports:
       - 4000:4000
     network_mode: host
-    command: ["s", "-H", "0.0.0.0", "-P", "4001", "--config=_config.yml"]
-
-  #   links:
-  #     - elasticsearch
-  # elasticsearch:
-  #   image: elasticsearch:7.4.2
-  #   environment:
-  #   - discovery.type=single-node
+    command: ["s", "-H", "0.0.0.0", "-P", "4000", "--config=_config.yml"]

@@ -61,6 +61,18 @@ root@884ff839efa9:/#
 The `-it` flags in the `build` command indicate that you intend to interact with it.
 
 
+### Create the Environment File
+`docker-compose.yml` [specifies that a file called `.env`](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/docker-compose.yml#L5) will be used to configure environment variables within the running container.
+
+Since we don't want to commit secret values to the repo, the environment variable keys with empty values have been specified in the file: [env-template](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/env-template)
+
+To create the `.env` file:
+
+1. `cp env-template .env`
+
+2. Edit `.env` with a text editor and fill in all the missing values.
+
+
 ### Start the Local Web Server
 
 In a terminal, navigate to the root directory of this repository where the `Dockerfile` and `docker-compose.yml` files are located.

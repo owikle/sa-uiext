@@ -34,6 +34,17 @@ analysis = {
 
 
 mappings = {
+    "dynamic_templates": [
+        {
+            "store_as_unindexed_text": {
+                "match_mapping_type": "*",
+                "mapping": {
+                    "type": "text",
+                    "index": False
+                }
+            }
+        }
+    ],
     "properties": {
         # Always include objectid.
         "objectid": {

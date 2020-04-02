@@ -1,287 +1,381 @@
 {%- assign fields = site.data.config-search -%}
 <script>
+ const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
 
-const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
+ async function executeQuery (q) {
+   /* Perform the search and return the response, or return null if something
+      goes wrong (e.g. server not reachable, response not JSON, etc.)
+    */
+   let query
 
-async function doSearch (q) {
-  /* Perform the search and return the response, or return null if something
-   goes wrong (e.g. server not reachable, response not JSON, etc.)
-   */
-  let query
+   // Build the basic query.
+   if (q === "") {
+     // Do a match_all query.
+     query = {
+       query: {
+         match_all: {}
+       }
+     }
+   } else {
+     // Do a phrase_prefix query.
+     query = {
+       query: {
+         multi_match: {
+           query: q,
+           type: "phrase_prefix",
+           fields: [
+             {% assign indexed = fields | where: 'index','true' %}
+             {% for f in indexed %}
+             "{{ f.field }}",
+             {% endfor %}
+             "full_text.raw",
+           ]
+         }
+       }
+     }
+   }
 
-  // Build the basic query.
-  if (q === "") {
-    // Do a match_all query.
-    query = {
-      query: {
-        match_all: {}
-      }
-    }
-  } else {
-    // Do a phrase_prefix query.
-    query = {
-      query: {
-        multi_match: {
-          query: q,
-          type: "phrase_prefix",
-          fields: [
-            {% assign indexed = fields | where: 'index','true' %}
-            {% for f in indexed %}
-            "{{ f.field }}",
-            {% endfor %}
-            "full_text.raw",
-          ]
-        }
-      }
-    }
-  }
+   // Add any aggregations.
+   {% assign faceted = fields | where: 'facet','true' %}
+   query.aggs = {
+     {% for f in faceted %}
+     {{ f.field }}: {
+       terms: {
+         field: "{{ f.field }}"
+       }
+     },
+     {% endfor %}
+   }
 
-  // Add any aggregations.
-  {% assign faceted = fields | where: 'facet','true' %}
-  query.aggs = {
-    {% for f in faceted %}
-    {{ f.field }}: {
-      terms: {
-        field: "{{ f.field }}"
-      }
-    },
-    {% endfor %}
-  }
+   // Specify which document fields we want returned.
+   query._source = [
+     "objectid",
+     {% for f in fields %}
+     "{{ f.field }}",
+     {% endfor %}
+   ]
 
-  // Specify which document fields we want returned.
-  query._source = [
-    "objectid",
-    {% for f in fields %}
-    "{{ f.field }}",
-    {% endfor %}
-  ]
+   let fetchResponse
+   try {
+     fetchResponse = await fetch(
+       ES_SEARCH_URL,
+       {
+         method: "POST",
+         headers: {
+           "Accept": "application/json",
+           "Content-Type": "application/json"
+         },
+         body: JSON.stringify(query)
+       }
+     )
+   } catch (e) {
+     return null
+   }
 
-  let fetchRespons
-  try {
-    fetchResponse = await fetch(
-      ES_SEARCH_URL,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(query)
-      }
-    )
-  } catch (e) {
-    return null
-  }
+   let searchResponse
+   // If the content is not JSON, abort, otherwise attempt to decode it.
+   if (!fetchResponse.headers.get('Content-Type')
+                     .startsWith('application/json')) {
+     return null
+   } else {
+     try {
+       searchResponse = await fetchResponse.json()
+     } catch (e) {
+       return null
+     }
+   }
 
-  let searchResponse
-  // If the content is not JSON, abort, otherwise attempt to decode it.
-  if (!fetchResponse.headers.get('Content-Type')
-      .startsWith('application/json')) {
-    return null
-  } else {
-    try {
-      searchResponse = await fetchResponse.json()
-    } catch (e) {
-      return null
-    }
-  }
+   if (!fetchResponse.ok) {
+     // If it looks like an ES error, print the 'reason' to the console.
+     if (searchResponse.error && searchResponse.error.reason) {
+       console.error(`Search error: ${searchResponse.error.reason}`)
+     }
+     return null
+   }
 
-  if (!fetchResponse.ok) {
-    // If it looks like an ES error, print the 'reason' to the console.
-    if (searchResponse.error && searchResponse.error.reason) {
-      console.error(`Search error: ${searchResponse.error.reason}`)
-    }
-    return null
-  }
-
-  return searchResponse
-}
-
-
-// Convert the facet name to a title.
-const facetNameToTitle = s =>
-  s.replace('_', ' ')
-  .replace(/\b[a-z]/g, (x) => x.toUpperCase())
-
-// Return the facet row HTML.
-const FacetRowEl = (name, value, docCount) => $(`
-  <div style="white-space: nowrap; color: #444; padding: .1em .5em; border-bottom: solid #eee 1px; position: relative; cursor: pointer;" data-facet="${name}" data-value="${value}">
-    <span style="white-space: nowrap; margin-right: 2em;">
-      ${value.length ? value : '&lt;unknown&gt;'}
-    </span>
-    <span style="position: absolute; right: 1em;">${docCount}</span>
-  </div>
-`)
+   return searchResponse
+ }
 
 
-// Return the facet element.
-const DEFAULT_NUM_VISIBLE_FACETS = 5
+ //////////////////////////////////////////////////////////////////////////////
+ // Utility Functions
+ //////////////////////////////////////////////////////////////////////////////
 
-function FacetEl (facet, buckets) {
-  const facetEl = $(`
-    <div style="font-size: .8em; border: solid #ddd 1px; margin-bottom: 2em;">
-      <h1 style="font-size: inherit; background-color: #ddd; padding: .3em; font-weight: bold; margin-bottom: 0; cursor: pointer; white-space: nowrap; padding-right: 5em; position: relative;">
-        ${facetNameToTitle(facet)}
-        <span style="position: absolute; right: 1em; font-weight: bold; color: #666; font-family: monospace; font-size: 1.4em;">+</span>
-      </h1>
-    </div>
-  `)
-
-  // Add and collect the value rows.
-  let rowEls = []
-  buckets.forEach((bucket, i) => {
-    let rowEl = FacetRowEl(facet, bucket.key, bucket.doc_count)
-    rowEls.push(rowEl)
-    facetEl.append(rowEl)
-  })
-
-  // Define "N more" / "show fewer" click handler.
-  const showMoreStr = `show ${rowEls.length - DEFAULT_NUM_VISIBLE_FACETS} more`
-  let moreOrFewer = "more"
-  const showMoreClickHandler = e => {
-    const showMore = moreOrFewer === "more"
-    rowEls
-      .slice(DEFAULT_NUM_VISIBLE_FACETS)
-      .forEach(el => el.css("display", showMore ? "block" : "none"))
-    e.target.innerText = showMore ? "show fewer" : showMoreStr
-    moreOrFewer = showMore ? "fewer" : "more"
-  }
-
-  // Hide rows and append "show N more" as necessary.
-  let moreOrFewerEl
-  if (rowEls.length > DEFAULT_NUM_VISIBLE_FACETS) {
-    rowEls
-      .slice(DEFAULT_NUM_VISIBLE_FACETS)
-      .forEach(el => el.css("display", "none"))
-    moreOrFewerEl = $(`
-      <div style="text-align: center; font-size: .9em; background-color: #f8f8f8; color: #888; cursor: pointer;">
-        ${showMoreStr}
-      </div>
-    `)
-    moreOrFewerEl.on('click', showMoreClickHandler)
-    facetEl.append(moreOrFewerEl)
-  }
-
-  // Determine whether the facet should be considered collapsed.
-  let collapsed = rowEls.length > DEFAULT_NUM_VISIBLE_FACETS ? null : false
-
-  // Set the header +/- icon based on the collapsed state.
-  const collapsedIconEl = $('h1 > span', facetEl)
-  collapsedIconEl.html(collapsed === false ? '-' : '+')
-
-  // Define header click handler.
-  const headerClickHandler = e => {
-    if (collapsed === null) {
-      // The action of this first click is determined by the current
-      // value of moreOrFewer.
-      collapsed = moreOrFewer === "more"
-    }
-    if (moreOrFewerEl !== undefined) {
-      moreOrFewerEl.remove()
-      moreOrFewerEl = undefined
-    }
-    rowEls.forEach(el => el.css("display", collapsed ? "block" : "none"))
-    collapsed = !collapsed
-    // Toggle the header collapsed icon.
-    collapsedIconEl.html(collapsed ? '+' : '-')
-  }
-
-  // Attach the click handler to the <h1>.
-  $('h1', facetEl).on('click', headerClickHandler)
+ function createElement (domString) {
+   // Return an HTML element object for the given DOM string.
+   const wrapper = document.createElement('div')
+   wrapper.innerHTML = domString.trim()
+   const el = wrapper.firstChild
+   wrapper.removeChild(el)
+   return el
+ }
 
 
-  return facetEl
-}
+ //////////////////////////////////////////////////////////////////////////////
+ // Facet Rendering
+ //////////////////////////////////////////////////////////////////////////////
+
+ const NUM_VISIBLE_FACET_VALUES = 5
+
+ // Convert the facet name to a title.
+ const facetNameToTitle = s => s.replace('_', ' ')
+                                .replace(/\b[a-z]/g, (x) => x.toUpperCase())
+
+ function FacetElement (facet, buckets) {
+   const el = createElement(`
+     <div style="font-size: .8em;
+                 border: solid #ddd 1px;
+                 margin-bottom: 2em;">
+       <h1 style="font-size: inherit;
+                  background-color: #ddd;
+                  padding: .3em;
+                  font-weight: bold;
+                  margin-bottom: 0;
+                  cursor: pointer;
+                  white-space: nowrap;
+                  padding-right: 5em;
+                  position: relative;">
+         ${facetNameToTitle(facet)}
+         <span style="position: absolute;
+                      right: 1em;
+                      font-weight: bold;
+                      color: #666;
+                      font-family: monospace;
+                      font-size: 1.4em;">
+           -
+         </span>
+       </h1>
+
+       ${buckets.map(bucket => `
+       <div style="white-space: nowrap;
+                   color: #444;
+                   padding: .1em .5em;
+                   border-bottom: solid #eee 1px;
+                   position: relative;
+                   cursor: pointer;"
+            data-facet="${facet}"
+            data-value="${bucket.key}">
+         <span style="white-space: nowrap;
+                      margin-right: 2em;">
+           ${bucket.key.length ? bucket.key : '&lt;unknown&gt;'}
+         </span>
+         <span style="position: absolute;
+                      right: 1em;">
+           ${bucket.doc_count}
+         </span>
+       </div>`
+       ).join('')}
+
+       <div style="text-align: center;
+                   font-size: .9em;
+                   background-color: #f8f8f8;
+                   color: #888;
+                   cursor: pointer;">
+         show fewer
+       </div>
+
+     </div>
+   `)
+
+   const rowEls = Array.from(el.querySelectorAll('div'))
+   const moreOrFewerEl = el.querySelector('div:last-child')
+
+   // Get the rows that will be controlled by the show more/less feature.
+   const moreRowEls = rowEls.slice(NUM_VISIBLE_FACET_VALUES, rowEls.length-1)
+   let showMore = false
+   if (moreRowEls.length === 0) {
+     // There are no hidden rows, so remove the more/fewer element entirely.
+     moreOrFewerEl.remove()
+   } else {
+     // Hide values that exceed the number of default visible.
+     // Init showMore to false so that an initial call to toggleShowMore will
+     // result in the extra rows being hidden.
+     const toggleShowMore = () => {
+       moreRowEls.forEach(el => el.style.display = showMore ? 'block' : 'none')
+       moreOrFewerEl.innerText = `show ${showMore ? 'fewer' : 'more'}`
+       showMore = !showMore
+     }
+     // Hide the extra rows.
+     toggleShowMore()
+     // Add a click handler to toggle the more/fewer state.
+     moreOrFewerEl.addEventListener('click', toggleShowMore)
+   }
+
+   // Define a click handler to toggle the collapsed/expanded row state.
+   let collapsed = false
+   const collapsedIconEl = el.querySelector('h1 > span')
+   el.querySelector('h1').addEventListener('click', () => {
+     if (!collapsed) {
+       // Hide all the rows.
+       rowEls.forEach(el => el.style.display = 'none')
+     } else {
+       // Iterate through all but the last row, setting visibility based on
+       // whether there are normally hidden rows and, if so, the state of
+       // show more/less.
+       rowEls.slice(0, rowEls.length - 1).forEach((el, i) => {
+         if (moreRowEls.length === 0 ||
+             (!showMore || i < NUM_VISIBLE_FACET_VALUES)) {
+           el.style.display = 'block'
+         }
+       })
+       // Always show the last row, which is either a show-more/less div or
+       // a facet value.
+       rowEls[rowEls.length - 1].style.display = 'block'
+     }
+
+     collapsedIconEl.innerText = collapsed ? '-' : '+'
+     collapsed = !collapsed
+   })
+
+   return el
+ }
 
 
-function renderFacets (aggregations) {
-  const facetsEl = $('#facets')
-  facetsEl.empty()
+ function renderFacets (aggregations) {
+   const facetsEl = document.querySelector('#facets')
+   Array.from(facetsEl.children).forEach(el => el.remove())
 
-  const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
-  let facetEl
-  for (let facet of facets) {
-    if (!aggregations[facet]) {
-      continue
-    }
-    facetsEl.append(FacetEl(facet, aggregations[facet].buckets))
-  }
-}
-
-
-/* search function */
-async function elastic_search (searchParams) {
-  const query = searchParams.get('q')
-  var resultdiv = $('#results');
-
-  resultdiv.empty();
-
-  const response = await doSearch(query)
-  if (response === null) {
-    resultdiv.append('Search failed. Please contact your administrator.')
-    return
-  }
-
-  renderFacets(response.aggregations)
-
-  resultdiv.prepend('<tr><td><h4 class="mt-3">' + response.hits.total.value + ' Result(s) found</h4></td></tr>');
-  for (let hit of response.hits.hits) {
-    const item = hit._source
-    var searchitem =
-      '<tr>'+
-          '<td class="">' +
-            {% assign display = fields | where: 'display','true' %}
-            {% for d in display %}
-            {% if forloop.first %}
-            '<p class="h4"><a href="{{ "/items/" | relative_url }}' + item.objectid + '.html">' + item.{{ fields[0].field }}  + '</a></p>' +
-            '<p class="ml-3">' +
-              {% else %}
-              item.{{ d.field }} + '<br> ' +
-              {% endif %}{% endfor %}
-            '</p></td>' +
-      '</tr>';
-    resultdiv.append(searchitem);
-  }
-}
+   const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
+   let facetEl
+   for (let facet of facets) {
+     if (!aggregations[facet]) {
+       continue
+     }
+     facetsEl.append(FacetElement(facet, aggregations[facet].buckets))
+   }
+ }
 
 
-function facetsClickHandler (e) {
-  const target = e.target.parentElement
-  if (!target.dataset.hasOwnProperty('facet')) {
-    return
-  }
+ //////////////////////////////////////////////////////////////////////////////
+ // Search Result Rendering
+ //////////////////////////////////////////////////////////////////////////////
 
-  const facetName = target.dataset.facet
-  const facetValue = target.dataset.value
-  const params = new URLSearchParams(location.search)
-  const paramKey = `${facetName}[]`
-  let paramVals = params.getAll(paramKey)
+ function renderResults (response) {
+   // Get the results table and remove any existing children.
+   const resultsTableEl = document.querySelector('#results')
+   Array.from(resultsTableEl.children).forEach(el => el.remove())
 
-  if (paramVals.includes(paramKey)) {
-    paramVals.pop(facetValue)
-  } else {
-    paramVals.push(facetValue)
-  }
-  params.delete(paramKey)
-  paramVals.forEach(v => params.append(paramKey, v))
-  location.search = `?${params.toString()}`
-}
+   if (response === null) {
+     return
+   }
+
+   // Get the display field and item path configuration via liquid.
+   const fieldNames = [
+     {%- assign displayFields = fields | where: 'display','true' -%}
+     {%- for field in displayFields -%}
+     "{{ field.field }}",
+     {%- endfor -%}
+   ]
+   const itemsPath = "{{ "/items/" | relative_url }}"
+
+   // Generate the results table HTML.
+   resultsTableEl.innerHTML = `
+     <tr>
+       <td>
+         <h4 class="mt-3">${response.hits.total.value} Result(s) found</h4>
+       </td>
+     </tr>
+     ${response.hits.hits.map(hit => `
+     <tr>
+       <td>
+         <p class="h4">
+           <a href="${itemsPath}${hit._source.objectid}.html">
+             ${hit._source[fieldNames[0]]}
+           </a>
+         </p>
+         ${fieldNames.slice(1).map(fieldName => `
+         <p class="ml-3">
+           ${hit._source[fieldName]}
+         </p>
+         `).join('')}
+       </td>
+     </tr>
+     `).join('')}
+   `
+ }
+
+ /* search function */
+ async function search (searchParams) {
+   const query = searchParams.get('q')
+
+   const response = await executeQuery(query)
+
+   // Call renderResults() before we check for a numm response in order to
+   // empty the results table in the event of an error.
+   renderResults(response)
+
+   if (response === null) {
+     document.querySelector('#search-error').innerText =
+       'Search failed. Please contact your administrator.'
+       return
+   }
+
+   renderFacets(response.aggregations)
+
+ }
 
 
-/* init search box and get query string */
-$(document).ready(function() {
-  // Register the facets click handler.
-  $('#facets').on('click', facetsClickHandler)
+ function facetsClickHandler (e) {
+   const target = e.target
+   if (!target.dataset.hasOwnProperty('facet')) {
+     return
+   }
 
-  $('input#search').on('keyup', e => {
-    elastic_search(e.target.value)
-  })
+   const facetName = target.dataset.facet
+   const facetValue = target.dataset.value
+   const params = new URLSearchParams(location.search)
+   const paramKey = `${facetName}[]`
+   let paramVals = params.getAll(paramKey)
 
-  if (window.location.search) {
-    const searchParams = new URLSearchParams(location.search)
-    const queryString = searchParams.get('q')
-    $('input#search').val(queryString);
-    elastic_search(searchParams);
-  }
-});
+   if (paramVals.includes(paramKey)) {
+     paramVals.pop(facetValue)
+   } else {
+     paramVals.push(facetValue)
+   }
+   params.delete(paramKey)
+   paramVals.forEach(v => params.append(paramKey, v))
+   location.search = `?${params.toString()}`
+ }
+
+
+ function getSearchParams () {
+   // Parse the URL search params, collecting array-type values into actual
+   // arrays and return the resulting <key> -> <value(s)> map.
+   const params = new Map()
+   const searchParams = new URLSearchParams(location.search)
+   for (let [k, v] of searchParams.entries()) {
+     const isArray = k.endsWith('[]')
+     if (!params.has(k)) {
+       params.set(k, isArray ? [v] : v)
+     } else if (isArray) {
+       params.get(k).push(v)
+     } else {
+       console.warn(`Duplicate search key "${k}" does not end with "[]"`)
+     }
+   }
+   return params
+ }
+
+
+ document.addEventListener('DOMContentLoaded', () => {
+   // Register the facets click handler.
+   document.querySelector('#facets')
+           .addEventListener('click', facetsClickHandler)
+
+   // Get the search params and do the search.
+   const params = getSearchParams()
+   search(params)
+
+   // Set the text input value to reflect the current search string and add
+   // a listener to submit on Enter.
+   const inputEl = document.querySelector('input#search')
+   inputEl.value = params.get('q') || ''
+   inputEl.addEventListener('keydown', e => {
+     if (e.key === "Enter") {
+       params.set('q', inputEl.value)
+       search(params)
+     }
+   })
+ })
+
 </script>

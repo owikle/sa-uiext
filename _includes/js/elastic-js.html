@@ -62,8 +62,6 @@
      }
    }
 
-   console.log(query)
-
    // Add any aggregations.
    {% assign faceted = fields | where: 'facet','true' %}
    query.aggs = {
@@ -310,6 +308,16 @@
    return el
  }
 
+ function getOrderedAppliedFacetNames () {
+   // Return a deduplicated, ordered array of the applied facet names.
+   let appliedFacets = []
+   for (let k of new URLSearchParams(location.search).keys()) {
+     if (k !== 'q' && !appliedFacets.includes(k)) {
+       appliedFacets.push(k.endsWith('[]') ? k.slice(0, k.length -2) : k)
+     }
+   }
+   return appliedFacets
+ }
 
  function renderFacets (aggregations) {
    // Render the facet elements for the specified Elasticsearch aggregation
@@ -318,7 +326,15 @@
    Array.from(facetsEl.children).forEach(el => el.remove())
    // Get the list of faceted field via liquid.
    const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
-   // TODO - if faceting, maintain original application order.
+
+   // Sort the facets in the application order indicated by the URL.
+   const facetNames = getOrderedAppliedFacetNames()
+   facets.sort((a, b) => {
+     const aIdx = facetNames.indexOf(a)
+     const bIdx = facetNames.indexOf(b)
+     return (aIdx > -1 ? aIdx : facets.length) -
+            (bIdx > -1 ? bIdx : facets.length)
+   })
    for (let facet of facets) {
      let aggregation = aggregations[facet]
      if (aggregation) {
@@ -438,7 +454,6 @@
    }
    return params
  }
-
 
  document.addEventListener('DOMContentLoaded', () => {
    // Get the search params and do the search.

@@ -121,12 +121,43 @@
  const facetNameToTitle = s => s.replace('_', ' ')
                                 .replace(/\b[a-z]/g, (x) => x.toUpperCase())
 
- function FacetElement (facet, buckets) {
+
+ function toggleFacetValueSelection (name, value) {
+   const params = new URLSearchParams(location.search)
+   const paramKey = `${name}[]`
+   let paramVals = params.getAll(paramKey)
+
+   if (paramVals.includes(value)) {
+     paramVals.pop(value)
+   } else {
+     paramVals.push(value)
+   }
+   params.delete(paramKey)
+   paramVals.forEach(v => params.append(paramKey, v))
+   location.search = `?${params.toString()}`
+ }
+
+ const getSelectedFacetVals = name =>
+   new URLSearchParams(location.search).getAll(`${name}[]`)
+
+ function FacetElement (facetName, buckets) {
+   // Get the selected values for this facet as specified in the URL.
+   const selectedVals = getSelectedFacetVals(facetName)
+
+   // Add a selected flag to the buckets.
+   buckets.forEach(bucket => {
+     bucket.selected = selectedVals.includes(bucket.key)
+   })
+
+   // Sort the selected values to the top, by doc count descending.
+   buckets.sort((a, b) => (a.selected ? 0 : 1) - (b.selected ? 0 : 1))
+
    const el = createElement(`
      <div style="font-size: .8em;
                  border: solid #ddd 1px;
                  margin-bottom: 2em;">
-       <h1 style="font-size: inherit;
+       <h1 class="facet-name"
+           style="font-size: inherit;
                   background-color: #ddd;
                   padding: .3em;
                   font-weight: bold;
@@ -135,7 +166,7 @@
                   white-space: nowrap;
                   padding-right: 5em;
                   position: relative;">
-         ${facetNameToTitle(facet)}
+         ${facetNameToTitle(facetName)}
          <span style="position: absolute;
                       right: 1em;
                       font-weight: bold;
@@ -147,13 +178,15 @@
        </h1>
 
        ${buckets.map(bucket => `
-       <div style="white-space: nowrap;
-                   color: #444;
+       <div class="facet-value"
+            style="white-space: nowrap;
                    padding: .1em .5em;
                    border-bottom: solid #eee 1px;
                    position: relative;
-                   cursor: pointer;"
-            data-facet="${facet}"
+                   cursor: pointer;
+                   color: ${bucket.selected ? "#fff" : "#444"};
+                   background-color: ${bucket.selected ? "#888" : "#fff"};"
+            data-facet="${facetName}"
             data-value="${bucket.key}">
          <span style="white-space: nowrap;
                       margin-right: 2em;">
@@ -161,12 +194,13 @@
          </span>
          <span style="position: absolute;
                       right: 1em;">
-           ${bucket.doc_count}
+           ${bucket.selected ? 'x' : bucket.doc_count}
          </span>
        </div>`
        ).join('')}
 
-       <div style="text-align: center;
+       <div class="show-more"
+            style="text-align: center;
                    font-size: .9em;
                    background-color: #f8f8f8;
                    color: #888;
@@ -182,29 +216,30 @@
 
    // Get the rows that will be controlled by the show more/less feature.
    const moreRowEls = rowEls.slice(NUM_VISIBLE_FACET_VALUES, rowEls.length-1)
+
+   // Hide values that exceed the number of default visible.
+   const toggleShowMore = () => {
+     moreRowEls.forEach(el => el.style.display = showMore ? 'block' : 'none')
+     moreOrFewerEl.innerText = `show ${showMore ? 'fewer' : 'more'}`
+     showMore = !showMore
+   }
+
+   // Init showMore to false so that an initial call to toggleShowMore will
+   // result in the extra rows being hidden.
    let showMore = false
+
    if (moreRowEls.length === 0) {
      // There are no hidden rows, so remove the more/fewer element entirely.
      moreOrFewerEl.remove()
    } else {
-     // Hide values that exceed the number of default visible.
-     // Init showMore to false so that an initial call to toggleShowMore will
-     // result in the extra rows being hidden.
-     const toggleShowMore = () => {
-       moreRowEls.forEach(el => el.style.display = showMore ? 'block' : 'none')
-       moreOrFewerEl.innerText = `show ${showMore ? 'fewer' : 'more'}`
-       showMore = !showMore
-     }
      // Hide the extra rows.
      toggleShowMore()
-     // Add a click handler to toggle the more/fewer state.
-     moreOrFewerEl.addEventListener('click', toggleShowMore)
    }
 
-   // Define a click handler to toggle the collapsed/expanded row state.
+   // Define a function to toggle the collapsed/expanded row state.
    let collapsed = false
    const collapsedIconEl = el.querySelector('h1 > span')
-   el.querySelector('h1').addEventListener('click', () => {
+   const toggleCollapsed = () => {
      if (!collapsed) {
        // Hide all the rows.
        rowEls.forEach(el => el.style.display = 'none')
@@ -225,6 +260,22 @@
 
      collapsedIconEl.innerText = collapsed ? '-' : '+'
      collapsed = !collapsed
+   }
+
+   // Add a single facet element click handler.
+   el.addEventListener('click', e => {
+     const el = e.target
+     if (el.classList.contains('facet-name')) {
+       toggleCollapsed()
+     } else if (el.classList.contains('facet-value')) {
+       const {facet, value} = el.dataset
+       toggleFacetValueSelection(facet, value)
+     } else if (el.classList.contains('show-more')) {
+       toggleShowMore()
+     } else if (el.parentElement.classList.contains('facet-value')) {
+       const {facet, value} = el.parentElement.dataset
+       toggleFacetValueSelection(facet, value)
+     }
    })
 
    return el
@@ -232,16 +283,17 @@
 
 
  function renderFacets (aggregations) {
+   // Render the facet elements for the specified Elasticsearch aggregation
+   // results.
    const facetsEl = document.querySelector('#facets')
    Array.from(facetsEl.children).forEach(el => el.remove())
-
+   // Get the list of faceted field via liquid.
    const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
-   let facetEl
    for (let facet of facets) {
-     if (!aggregations[facet]) {
-       continue
+     let aggregation = aggregations[facet]
+     if (aggregation) {
+       facetsEl.appendChild(FacetElement(facet, aggregation.buckets))
      }
-     facetsEl.append(FacetElement(facet, aggregations[facet].buckets))
    }
  }
 
@@ -315,28 +367,31 @@
  }
 
 
- function facetsClickHandler (e) {
-   const target = e.target
-   if (!target.dataset.hasOwnProperty('facet')) {
-     return
-   }
+ /* function facetsClickHandler (e) {
+  *   let target = e.target
+  *   if (!target.dataset.hasOwnProperty('facet')) {
+  *     target = target.parentElement
+  *     if (!target.dataset.hasOwnProperty('facet')) {
+  *       return
+  *     }
+  *   }
 
-   const facetName = target.dataset.facet
-   const facetValue = target.dataset.value
-   const params = new URLSearchParams(location.search)
-   const paramKey = `${facetName}[]`
-   let paramVals = params.getAll(paramKey)
+  *   const facetName = target.dataset.facet
+  *   const facetValue = target.dataset.value
+  *   const params = new URLSearchParams(location.search)
+  *   const paramKey = `${facetName}[]`
+  *   let paramVals = params.getAll(paramKey)
 
-   if (paramVals.includes(paramKey)) {
-     paramVals.pop(facetValue)
-   } else {
-     paramVals.push(facetValue)
-   }
-   params.delete(paramKey)
-   paramVals.forEach(v => params.append(paramKey, v))
-   location.search = `?${params.toString()}`
- }
-
+  *   if (paramVals.includes(paramKey)) {
+  *     paramVals.pop(facetValue)
+  *   } else {
+  *     paramVals.push(facetValue)
+  *   }
+  *   params.delete(paramKey)
+  *   paramVals.forEach(v => params.append(paramKey, v))
+  *   location.search = `?${params.toString()}`
+  * }
+  */
 
  function getSearchParams () {
    // Parse the URL search params, collecting array-type values into actual
@@ -358,10 +413,6 @@
 
 
  document.addEventListener('DOMContentLoaded', () => {
-   // Register the facets click handler.
-   document.querySelector('#facets')
-           .addEventListener('click', facetsClickHandler)
-
    // Get the search params and do the search.
    const params = getSearchParams()
    search(params)

@@ -2,38 +2,67 @@
 <script>
  const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
 
- async function executeQuery (q) {
+ async function executeQuery (searchParams) {
    /* Perform the search and return the response, or return null if something
       goes wrong (e.g. server not reachable, response not JSON, etc.)
     */
-   let query
 
-   // Build the basic query.
-   if (q === "") {
-     // Do a match_all query.
-     query = {
-       query: {
-         match_all: {}
-       }
-     }
-   } else {
-     // Do a phrase_prefix query.
-     query = {
-       query: {
-         multi_match: {
-           query: q,
-           type: "phrase_prefix",
-           fields: [
-             {% assign indexed = fields | where: 'index','true' %}
-             {% for f in indexed %}
-             "{{ f.field }}",
-             {% endfor %}
-             "full_text.raw",
-           ]
-         }
+   // Init the query context to a match_all.
+   let queryContext = { match_all: {} }
+
+   // Add a full text query.
+   const q = searchParams.get('q')
+   if (q) {
+     queryContext = {
+       multi_match: {
+         query: q,
+         type: "phrase_prefix",
+         fields: [
+           {% assign indexed = fields | where: 'index','true' %}
+           {% for f in indexed %}
+           "{{ f.field }}",
+           {% endfor %}
+           "full_text.raw",
+         ]
        }
      }
    }
+
+   // Build the filter context.
+   let filterContext = []
+   for (let [k, v] of searchParams.entries()) {
+     if (k === 'q') {
+       continue
+     }
+     // Add a term filter.
+     const isArray = k.endsWith('[]')
+     let fieldName = isArray ? k.slice(0, k.length - 2) : k
+     let fieldValues = isArray ? v : [v]
+     fieldValues.forEach(fieldValue => {
+       filterContext.push({
+         term: { [fieldName]: fieldValue }
+       })
+     })
+   }
+
+   let query = {
+     query: {}
+   }
+
+   if (filterContext.length === 0) {
+     // Build non-filtered query.
+     query.query = queryContext
+   } else {
+     // Build filtered query.
+     query.query = {
+       bool: {
+         must: queryContext,
+         filter: filterContext
+       }
+     }
+   }
+
+   console.log(query)
 
    // Add any aggregations.
    {% assign faceted = fields | where: 'facet','true' %}
@@ -126,7 +155,7 @@
    const params = new URLSearchParams(location.search)
    const paramKey = `${name}[]`
    let paramVals = params.getAll(paramKey)
-
+   // TODO - maintain the original application order.
    if (paramVals.includes(value)) {
      paramVals.pop(value)
    } else {
@@ -289,6 +318,7 @@
    Array.from(facetsEl.children).forEach(el => el.remove())
    // Get the list of faceted field via liquid.
    const facets = [{% for f in faceted %}"{{ f.field }}",{% endfor %}]
+   // TODO - if faceting, maintain original application order.
    for (let facet of facets) {
      let aggregation = aggregations[facet]
      if (aggregation) {
@@ -348,9 +378,7 @@
 
  /* search function */
  async function search (searchParams) {
-   const query = searchParams.get('q')
-
-   const response = await executeQuery(query)
+   const response = await executeQuery(searchParams)
 
    // Call renderResults() before we check for a numm response in order to
    // empty the results table in the event of an error.

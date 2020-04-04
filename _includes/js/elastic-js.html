@@ -161,7 +161,11 @@
    }
    params.delete(paramKey)
    paramVals.forEach(v => params.append(paramKey, v))
-   location.search = `?${params.toString()}`
+
+   const url = new URL(location.href)
+   url.search = params
+   history.pushState(null, document.title, url)
+   search(getSearchParams())
  }
 
  const getSelectedFacetVals = name =>
@@ -181,12 +185,15 @@
 
    const el = createElement(`
      <div style="font-size: .8em;
-                 border: solid #ddd 1px;
+                 border: solid #343a40 1px;
+                 border-radius: .25rem;
+                 overflow: hidden;
                  margin-bottom: 2em;">
        <h1 class="facet-name"
            style="font-size: inherit;
-                  background-color: #ddd;
-                  padding: .3em;
+                  background-color: #343a40;
+                  color: #ccc;
+                  padding: .5em;
                   font-weight: bold;
                   margin-bottom: 0;
                   cursor: pointer;
@@ -204,15 +211,15 @@
          </span>
        </h1>
 
-       ${buckets.map(bucket => `
+       ${buckets.map((bucket, i) => `
        <div class="facet-value"
             style="white-space: nowrap;
-                   padding: .1em .5em;
-                   border-bottom: solid #eee 1px;
+                   padding: .2em .5em;
+                   ${i > 0 ? "border-top: solid #eee 1px;" : ""}
                    position: relative;
                    cursor: pointer;
                    color: ${bucket.selected ? "#fff" : "#444"};
-                   background-color: ${bucket.selected ? "#888" : "#fff"};"
+                   background-color: ${bucket.selected ? "#17a2b8" : "#fff"};"
             data-facet="${facetName}"
             data-value="${bucket.key}">
          <span style="white-space: nowrap;
@@ -469,6 +476,10 @@
        params.set('q', inputEl.value)
        search(params)
      }
+   })
+
+   window.addEventListener('popstate', () => {
+     search(getSearchParams())
    })
  })
 

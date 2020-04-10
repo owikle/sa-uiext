@@ -4,7 +4,9 @@
       "analyzer": {
         "semicolon_delimited_analyzer": {
           "tokenizer": "semicolon_delimited_tokenizer",
-          "filter": ["trim"]
+          "filter": [
+            "trim"
+          ]
         }
       },
       "tokenizer": {
@@ -16,30 +18,29 @@
     }
   },
   "mappings": {
+    "dynamic_templates": [
+      {
+        "store_as_unindexed_text": {
+          "match_mapping_type": "*",
+          "mapping": {
+            "type": "text",
+            "index": false
+          }
+        }
+      }
+    ],
     "properties": {
       "objectid": {
         "type": "text",
         "index": false
       },
-      "filename": {
-        "type": "text",
-        "index": false
-      },
-      "title_full": {
-        "type": "text"
-      },
       "title": {
-        "type": "text"
+        "type": "text",
+        "term_vector": "with_positions"
       },
       "date": {
-        "type": "text"
-      },
-      "conference_dates": {
         "type": "text",
-        "index": false
-      },
-      "description": {
-        "type": "text"
+        "term_vector": "with_positions"
       },
       "guest_author": {
         "type": "text",
@@ -51,101 +52,37 @@
         "analyzer": "semicolon_delimited_analyzer",
         "fielddata": true
       },
-      "guest_scientist": {
+      "program_artists": {
         "type": "text",
-        "index": false
+        "term_vector": "with_positions"
       },
-      "guest_fan": {
+      "description": {
         "type": "text",
-        "index": false
-      },
-      "committee": {
-        "type": "text",
-        "index": false
-      },
-      "cover_artist": {
-        "type": "text",
-        "index": false
-      },
-      "inside_cover_artist": {
-        "type": "text",
-        "index": false
-      },
-      "back_artist": {
-        "type": "text",
-        "index": false
-      },
-      "badge_artist": {
-        "type": "text",
-        "index": false
-      },
-      "button_artist": {
-        "type": "text",
-        "index": false
+        "term_vector": "with_positions"
       },
       "creator": {
         "type": "text",
         "analyzer": "semicolon_delimited_analyzer",
         "fielddata": true
       },
-      "guests_of_honor": {
-        "type": "text",
-        "index": false
-      },
-      "program_artists": {
-        "type": "text",
-        "index": false
-      },
-      "feature_subjects": {
-        "type": "text",
-        "index": false
-      },
       "subject": {
         "type": "text",
         "analyzer": "semicolon_delimited_analyzer",
         "fielddata": true
-      },
-      "identifier": {
-        "type": "text",
-        "index": false
       },
       "location": {
         "type": "text",
         "analyzer": "semicolon_delimited_analyzer",
         "fielddata": true
       },
-      "digital_collection": {
-        "type": "text",
-        "index": false
-      },
-      "contributing_institution": {
-        "type": "text",
-        "index": false
-      },
-      "rights": {
-        "type": "text",
-        "index": false
-      },
-      "standardized_rights": {
-        "type": "text",
-        "index": false
-      },
-      "format_original": {
-        "type": "text",
-        "index": false
-      },
       "type": {
         "type": "text",
         "analyzer": "semicolon_delimited_analyzer",
         "fielddata": true
       },
-      "format": {
+      "full_text": {
         "type": "text",
-        "index": false
-      },
-      "language": {
-        "type": "text",
-        "index": false
+        "term_vector": "with_positions"
       }
     }
   }

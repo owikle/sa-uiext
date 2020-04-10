@@ -16,7 +16,7 @@
      queryContext = {
        multi_match: {
          query: q,
-         type: "phrase_prefix",
+         type: "phrase",
          fields: [
            {% assign indexed = fields | where: 'index','true' %}
            {% for f in indexed %}

@@ -127,7 +127,8 @@ def AutoMapping(field_def):
             "type": "keyword"
         }
     return {
-        "type": "text"
+        "type": "text",
+        "term_vector": "with_positions"
     }
 
 

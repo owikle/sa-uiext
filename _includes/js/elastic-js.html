@@ -153,6 +153,7 @@
    const params = new URLSearchParams(location.search)
    const paramKey = `${name}[]`
    let paramVals = params.getAll(paramKey)
+
    // TODO - maintain the original application order.
    if (paramVals.includes(value)) {
      paramVals.pop(value)
@@ -165,6 +166,7 @@
    const url = new URL(location.href)
    url.search = params
    history.pushState(null, document.title, url)
+
    search(getSearchParams())
  }
 
@@ -486,6 +488,15 @@
    inputEl.addEventListener('keydown', e => {
      if (e.key === "Enter") {
        params.set('q', inputEl.value)
+
+       // Hack to fix a bug for the demo where a new search using the
+       // embeddd input doesn't update the URL.
+       const url = new URL(location.href)
+       const urlSearchParams = new URLSearchParams(url.search)
+       urlSearchParams.set('q', inputEl.value)
+       url.search = urlSearchParams
+       history.pushState(null, document.title, url)
+
        search(params)
      }
    })

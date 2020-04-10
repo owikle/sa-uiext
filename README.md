@@ -41,8 +41,24 @@ For example, to override `DENSITY` and force regeneration of all derivatives, no
 DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
 ```
 
+### 3. Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
+Usage:
+```
+sync-objects <path-to-your-assets-directory> [EXTRA "aws s3 sync" ARGS]
+```
+Here's a [summary of available `aws s3 sync` args](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
 
-### 3. - N. Do a bunch of other things
+This script also requires a couple of configuration values relating to your DO Space, namely the Space name and endpoint host. These can either be specified as environment variables:
+```
+export DO_ENDPOINT=<endpoint-host>
+export DO_SPACE=<space-name>
+```
+or as prefixes to the script:
+```
+DO_ENDPOINT=<endpoint-host> DO_SPACE=<space-name> sync-objects ...
+```
+
+### 4. - N. Do a bunch of other things
 
 
 ## Using Docker

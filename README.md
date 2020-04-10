@@ -58,7 +58,49 @@ or as prefixes to the script:
 DO_ENDPOINT=<endpoint-host> DO_SPACE=<space-name> sync-objects ...
 ```
 
-### 4. - N. Do a bunch of other things
+### 4. Set your search configuration in `config-search.csv` and use `generate-es-index-settings` and `create-es-index` to create your search index.
+
+[config-search.csv](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/_data/config-search.csv) defines the settings for the fields that you want indexed and displayed in search.
+
+Example (as a table):
+
+|field|index|display|facet|multi-valued|
+|---|---|---|---|---|
+title|true|true|false|false
+date|true|true|false|false
+guest_author|true|false|true|true
+guest_artist|true|true|true|true
+program_artists|true|true|false|false
+description|true|false|false|false
+creator|true|false|true|true
+subject|true|false|true|true
+location|true|false|true|true
+type|true|false|true|true
+full_text|true|false|false|false
+
+[generate-es-index-settings](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-es-index-settings) is a script that creates an Elasticsearch index definition JSON file using the configuration values in `config-search.csv`.
+Usage:
+```
+generate-es-index-settings <path-to-config-search.csv> <output-file-path>
+```
+
+[create-es-index](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/create-es-index) is a script that uses the index settings file to create the an index in the Elasticsearch instance.
+Usage:
+```
+create-es-index <elasticsearch-url> <index-name> <path-to-index-settings-file>
+```
+
+### 5. Use `extract-pdf-text`, `generate-es-bulk-data`, and `load-es-bulk-data` to load your collection into Elasticsearch
+[extract-pdf-text](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/extract-pdf-text)
+
+[generate-es-bulk-data](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-es-bulk-data)
+
+[load-es-bulk-data](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/load-es-bulk-data)
+
+TODO
+
+
+### 6. - N. Do a bunch of other things
 
 
 ## Using Docker

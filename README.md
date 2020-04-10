@@ -5,6 +5,46 @@ uses data from [Moscon](https://www.lib.uidaho.edu/digital/moscon/), but not rea
 Objects are simply in a folder.
 Every object has an image in "thumbs" and "small" named after `objectid`, and an original object item in the root folder named after `filename` column.
 
+## Website generation and deployment steps
+
+### 1. Create your metadata CSV file and organize your assets into a single directory.
+For example, in the directory: `~/collection/objects`
+
+### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
+
+Usage:
+```
+generate-derivatives <path-to-your-assets-directory>
+```
+Example:
+```
+generate-derivatives ~/collection/objects
+```
+
+This script automatically creates `/small` and `/thumbs` subdirectories as necessary within the assets directory, into which it will put the files that it generates.
+
+You can specify several options by prepending them to the command like so:
+```
+<option>=<value> [<option>=<value>] generate-derivatives <path-to-your-assets-directory>
+```
+
+The following options are [defined in the script](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-derivatives#L3-L6) along with their default values:
+```
+THUMBS_SIZE=${THUMBS_SIZE:-"300x300"}
+SMALL_SIZE=${SMALL_SIZE:-"800x800"}
+DENSITY=${DENSITY:-"300"}
+MISSING=${MISSING:-"true"}
+```
+
+For example, to override `DENSITY` and force regeneration of all derivatives, not just those that are `MISSING` (i.e. haven't been generated yet):
+```
+DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
+```
+
+
+### 3. - N. Do a bunch of other things
+
+
 ## Using Docker
 Docker and Docker Compose provide a means of defining and executing an application from within an isolated and deterministic environment.
 

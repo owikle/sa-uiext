@@ -4,7 +4,7 @@ date,true,true,false,false
 guest_author,true,false,true,true
 guest_artist,true,true,true,true
 program_artists,true,true,false,false
-description,true,true,false,false
+description,true,false,false,false
 creator,true,false,true,true
 subject,true,false,true,true
 location,true,false,true,true

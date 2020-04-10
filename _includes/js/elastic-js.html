@@ -375,25 +375,36 @@
    const itemsPath = "{{ "/items/" | relative_url }}"
 
    // Generate the results table HTML.
+   const numHits = response.hits.total.value
    resultsTableEl.innerHTML = `
      <tr>
        <td>
-         <h4 class="mt-3">${response.hits.total.value} Result(s) found</h4>
+         <h4 class="mt-3">
+           ${numHits} Result${numHits === 1 ? "" : "s"} found
+         </h4>
        </td>
      </tr>
      ${response.hits.hits.map(hit => `
      <tr>
-       <td>
-         <p class="h4">
+       <td style="display: flex;">
+         <div>
            <a href="${itemsPath}${hit._source.objectid}.html">
-             ${hit._source[fieldNames[0]]}
+             <img src="{{ site.digital-objects }}/thumbs/${hit._source.objectid}_th.jpg"
+                  style="width: 100px; height: auto;">
            </a>
-         </p>
-         ${fieldNames.slice(1).map(fieldName => `
-         <p class="ml-3">
-           ${hit._source[fieldName]}
-         </p>
-         `).join('')}
+         </div>
+         <div>
+           <p class="h4 ml-3">
+             <a href="${itemsPath}${hit._source.objectid}.html">
+               ${hit._source[fieldNames[0]]}
+             </a>
+           </p>
+           ${fieldNames.slice(1).map(fieldName => `
+           <p class="ml-3 mb-1">
+             ${hit._source[fieldName]}
+           </p>
+           `).join('')}
+         </div>
        </td>
      </tr>
      `).join('')}

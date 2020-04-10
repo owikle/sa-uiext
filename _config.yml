@@ -15,7 +15,7 @@ digital-objects: /demo/moscon/objects
 source-code: https://github.com/CollectionBuilder
 
 # Elasticsearch cluster host
-elasticsearch-host: localhost:9200
+elasticsearch-host: 0.0.0.0:9200
 elasticsearch-index: moscon_programs_collection
 
 # Site settings

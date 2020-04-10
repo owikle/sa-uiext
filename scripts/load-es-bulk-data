@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-if [ "$#" -ne 1 ]; then
-    echo "usage: `basename $0` ES_BULK_DATA_FILE"
+if [ "$#" -ne 2 ]; then
+    echo "usage: `basename $0` ES_URL ES_BULK_DATA_FILE"
     exit 1
 fi
 
-curl -H "Content-Type: application/x-ndjson" -XPOST "elasticsearch:9200/_bulk?pretty&refresh" --data-binary @$1
+curl -H "Content-Type: application/x-ndjson" -XPOST "$1/_bulk?pretty&refresh" --data-binary @$2

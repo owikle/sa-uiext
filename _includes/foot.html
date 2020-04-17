@@ -12,4 +12,10 @@
 {% if page.layout == "map" %}{% include js/map-js.html %}{% endif %}
 {% if page.layout == "item" %}{% include js/arrow-page-control-js.html %}{% endif %}
 {%- if page.layout == "home-infographic" %}{% include js/carousel-js.html %}{% endif -%}
-{% if page.layout == "search" %}{% include js/lunr-js.html %}{% endif %}
+{% if page.layout == "search" %}
+  {% if site.elasticsearch-host != "" %}
+    {% include js/elastic-js.html %}
+  {% else %}
+    {% include js/lunr-js.html %}
+  {% endif %}
+{% endif %}

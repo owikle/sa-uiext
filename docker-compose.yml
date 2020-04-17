@@ -1,4 +1,5 @@
 version: '2.4'
+
 services:
   collectionbuilder:
     build: .
@@ -6,8 +7,18 @@ services:
     environment:
       JEKYLL_ENV: development
     volumes:
-      - .:/app
+      - .:/home/ubuntu/collectionbuilder
     ports:
       - 4000:4000
-    network_mode: host
+      - 9200:9200
     command: ["s", "-H", "0.0.0.0", "-P", "4000", "--config=_config.yml"]
+  #   depends_on:
+  #     - elasticsearch
+  # elasticsearch:
+  #   image: elasticsearch:7.6.0
+  #   environment:
+  #   - discovery.type=single-node
+  #   - http.cors.enabled=true
+  #   - http.cors.allow-origin=*
+  #   ports:
+  #     - 9200:9200

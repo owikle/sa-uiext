@@ -5,6 +5,104 @@ uses data from [Moscon](https://www.lib.uidaho.edu/digital/moscon/), but not rea
 Objects are simply in a folder.
 Every object has an image in "thumbs" and "small" named after `objectid`, and an original object item in the root folder named after `filename` column.
 
+## Website generation and deployment steps
+
+### 1. Create your metadata CSV file and organize your assets into a single directory.
+For example, in the directory: `~/collection/objects`
+
+### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
+
+Usage:
+```
+generate-derivatives <path-to-your-assets-directory>
+```
+Example:
+```
+generate-derivatives ~/collection/objects
+```
+
+This script automatically creates `/small` and `/thumbs` subdirectories as necessary within the assets directory, into which it will put the files that it generates.
+
+You can specify several options by prepending them to the command like so:
+```
+<option>=<value> [<option>=<value>] generate-derivatives <path-to-your-assets-directory>
+```
+
+The following options are [defined in the script](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-derivatives#L3-L6) along with their default values:
+```
+THUMBS_SIZE=${THUMBS_SIZE:-"300x300"}
+SMALL_SIZE=${SMALL_SIZE:-"800x800"}
+DENSITY=${DENSITY:-"300"}
+MISSING=${MISSING:-"true"}
+```
+
+For example, to override `DENSITY` and force regeneration of all derivatives, not just those that are `MISSING` (i.e. haven't been generated yet):
+```
+DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
+```
+
+### 3. Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
+Usage:
+```
+sync-objects <path-to-your-assets-directory> [EXTRA "aws s3 sync" ARGS]
+```
+Here's a [summary of available `aws s3 sync` args](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
+
+This script also requires a couple of configuration values relating to your DO Space, namely the Space name and endpoint host. These can either be specified as environment variables:
+```
+export DO_ENDPOINT=<endpoint-host>
+export DO_SPACE=<space-name>
+```
+or as prefixes to the script:
+```
+DO_ENDPOINT=<endpoint-host> DO_SPACE=<space-name> sync-objects ...
+```
+
+### 4. Set your search configuration in `config-search.csv` and use `generate-es-index-settings` and `create-es-index` to create your search index.
+
+[config-search.csv](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/_data/config-search.csv) defines the settings for the fields that you want indexed and displayed in search.
+
+Example (as a table):
+
+|field|index|display|facet|multi-valued|
+|---|---|---|---|---|
+title|true|true|false|false
+date|true|true|false|false
+guest_author|true|false|true|true
+guest_artist|true|true|true|true
+program_artists|true|true|false|false
+description|true|false|false|false
+creator|true|false|true|true
+subject|true|false|true|true
+location|true|false|true|true
+type|true|false|true|true
+full_text|true|false|false|false
+
+[generate-es-index-settings](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-es-index-settings) is a script that creates an Elasticsearch index definition JSON file using the configuration values in `config-search.csv`.
+Usage:
+```
+generate-es-index-settings <path-to-config-search.csv> <output-file-path>
+```
+
+[create-es-index](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/create-es-index) is a script that uses the index settings file to create the an index in the Elasticsearch instance.
+Usage:
+```
+create-es-index <elasticsearch-url> <index-name> <path-to-index-settings-file>
+```
+
+### 5. Use `extract-pdf-text`, `generate-es-bulk-data`, and `load-es-bulk-data` to load your collection into Elasticsearch
+[extract-pdf-text](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/extract-pdf-text)
+
+[generate-es-bulk-data](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/generate-es-bulk-data)
+
+[load-es-bulk-data](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/search/scripts/load-es-bulk-data)
+
+TODO
+
+
+### 6. - N. Do a bunch of other things
+
+
 ## Using Docker
 Docker and Docker Compose provide a means of defining and executing an application from within an isolated and deterministic environment.
 

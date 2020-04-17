@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "semicolon_delimited_analyzer": {
+          "tokenizer": "semicolon_delimited_tokenizer",
+          "filter": [
+            "trim"
+          ]
+        }
+      },
+      "tokenizer": {
+        "semicolon_delimited_tokenizer": {
+          "type": "simple_pattern_split",
+          "pattern": ";"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic_templates": [
+      {
+        "store_as_unindexed_text": {
+          "match_mapping_type": "*",
+          "mapping": {
+            "type": "text",
+            "index": false
+          }
+        }
+      }
+    ],
+    "properties": {
+      "objectid": {
+        "type": "text",
+        "index": false
+      },
+      "title": {
+        "type": "text",
+        "term_vector": "with_positions"
+      },
+      "date": {
+        "type": "text",
+        "term_vector": "with_positions"
+      },
+      "guest_author": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "guest_artist": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "program_artists": {
+        "type": "text",
+        "term_vector": "with_positions"
+      },
+      "description": {
+        "type": "text",
+        "term_vector": "with_positions"
+      },
+      "creator": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "subject": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "location": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "type": {
+        "type": "text",
+        "analyzer": "semicolon_delimited_analyzer",
+        "fielddata": true
+      },
+      "full_text": {
+        "type": "text",
+        "term_vector": "with_positions"
+      }
+    }
+  }
+}

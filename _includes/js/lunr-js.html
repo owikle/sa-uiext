@@ -27,7 +27,7 @@ function lunr_search () {
   var resultdiv = $('#results');
   var query = $('input#search').val();//.toLowerCase();
   /* basic search that supports operators */
-  var result = idx.search(query); 
+  var result = idx.search(query);
   /* more fuzzy search, but doesn't support operators:
   var result =
     idx.query(function (q) {

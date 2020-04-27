@@ -1,22 +1,4 @@
 {
-  "settings": {
-    "analysis": {
-      "analyzer": {
-        "semicolon_delimited_analyzer": {
-          "tokenizer": "semicolon_delimited_tokenizer",
-          "filter": [
-            "trim"
-          ]
-        }
-      },
-      "tokenizer": {
-        "semicolon_delimited_tokenizer": {
-          "type": "simple_pattern_split",
-          "pattern": ";"
-        }
-      }
-    }
-  },
   "mappings": {
     "dynamic_templates": [
       {
@@ -35,54 +17,37 @@
         "index": false
       },
       "title": {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "text"
       },
       "date": {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "text"
       },
       "guest_author": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "guest_artist": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "program_artists": {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "text"
       },
       "description": {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "text"
       },
       "creator": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "subject": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "location": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "type": {
-        "type": "text",
-        "analyzer": "semicolon_delimited_analyzer",
-        "fielddata": true
+        "type": "keyword"
       },
       "full_text": {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "text"
       }
     }
   }

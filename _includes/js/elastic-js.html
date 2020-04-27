@@ -14,9 +14,9 @@
    const q = searchParams.get('q')
    if (q) {
      queryContext = {
-       multi_match: {
+       simple_query_string: {
          query: q,
-         type: "phrase",
+         default_operator: "and",
          fields: [
            {% assign indexed = fields | where: 'index','true' %}
            {% for f in indexed %}

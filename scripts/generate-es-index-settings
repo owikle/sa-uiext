@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 """
-Generate a file that comprises the Analysis and Mapping settings for the
-Elasticsearch index from the configuration specified in _data/config.search.yml
+Generate a file that comprises the Mapping settings for the Elasticsearch index
+from the configuration specified in _data/config.search.yml
 
-https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis.html
 https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
 """
 
@@ -15,22 +14,6 @@ import json
 TEXT_FIELD_DEF_KEYS = {'field'}
 BOOL_FIELD_DEF_KEYS = {'index', 'display', 'facet', 'multi-valued'}
 VALID_FIELD_DEF_KEYS = TEXT_FIELD_DEF_KEYS.union(BOOL_FIELD_DEF_KEYS)
-
-
-analysis = {
-    "analyzer": {
-        "semicolon_delimited_analyzer": {
-            "tokenizer": "semicolon_delimited_tokenizer",
-            "filter": ["trim"]
-        }
-    },
-    "tokenizer": {
-        "semicolon_delimited_tokenizer": {
-            "type": "simple_pattern_split",
-            "pattern": ";"
-        }
-    }
-}
 
 
 mappings = {
@@ -56,9 +39,6 @@ mappings = {
 
 
 index_settings = {
-    "settings": {
-        "analysis": analysis,
-    },
     "mappings": mappings,
 }
 
@@ -116,19 +96,8 @@ def AutoMapping(field_def):
     """Return an ES mapping configuration object for the specified field
     definition.
     """
-    if field_def['multi-valued']:
-        return {
-            "type": "text",
-            "analyzer": "semicolon_delimited_analyzer",
-            "fielddata": True
-        }
-    if field_def['facet']:
-        return {
-            "type": "keyword"
-        }
     return {
-        "type": "text",
-        "term_vector": "with_positions"
+        "type": "keyword" if field_def['facet'] else "text"
     }
 
 

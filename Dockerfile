@@ -36,6 +36,8 @@ RUN sudo gem install \
     jekyll \
     bundler
 
+# Install Elasticsearch
+
 WORKDIR /home/ubuntu
 # https://www.elastic.co/guide/en/elasticsearch/reference/current/targz.html#install-linux
 RUN curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.6.2-linux-x86_64.tar.gz  && \
@@ -45,9 +47,16 @@ RUN curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7
     rm elasticsearch-7.6.2-linux-x86_64.tar.gz && \
     echo "export PATH=$PATH:~/elasticsearch-7.6.2/bin" >> ~/.bashrc
 
+# Configure elasticsearch
+
+RUN printf "\
+network.host: 0.0.0.0\n\
+discovery.type: single-node\n\
+http.cors.enabled: true\n\
+http.cors.allow-origin: \"*\"\n\
+" >> ~/elasticsearch-7.6.2/config/elasticsearch.yml
+
 WORKDIR collectionbuilder
-COPY . .
-RUN sudo chown -R ubuntu:ubuntu .
 
 EXPOSE 4000
 EXPOSE 9200

@@ -23,10 +23,20 @@
         "type": "text"
       },
       "guest_author": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "guest_artist": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "program_artists": {
         "type": "text"
@@ -35,16 +45,36 @@
         "type": "text"
       },
       "creator": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "subject": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "location": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "type": {
-        "type": "keyword"
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
       },
       "full_text": {
         "type": "text"

@@ -22,7 +22,6 @@
            {% for f in indexed %}
            "{{ f.field }}",
            {% endfor %}
-           "full_text.raw",
          ]
        }
      }
@@ -36,7 +35,7 @@
      }
      // Add a term filter.
      const isArray = k.endsWith('[]')
-     let fieldName = isArray ? k.slice(0, k.length - 2) : k
+     let fieldName = '{}.raw'.format(isArray ? k.slice(0, k.length - 2) : k)
      let fieldValues = isArray ? v : [v]
      fieldValues.forEach(fieldValue => {
        filterContext.push({
@@ -68,7 +67,7 @@
      {% for f in faceted %}
      {{ f.field }}: {
        terms: {
-         field: "{{ f.field }}"
+         field: "{{ f.field }}.raw"
        }
      },
      {% endfor %}

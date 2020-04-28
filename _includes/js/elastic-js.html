@@ -17,12 +17,7 @@
        simple_query_string: {
          query: q,
          default_operator: "and",
-         fields: [
-           {% assign indexed = fields | where: 'index','true' %}
-           {% for f in indexed %}
-           "{{ f.field }}",
-           {% endfor %}
-         ]
+         fields: searchParams.get('fields') || ["*"]
        }
      }
    }
@@ -30,12 +25,12 @@
    // Build the filter context.
    let filterContext = []
    for (let [k, v] of searchParams.entries()) {
-     if (k === 'q') {
+     if (k === 'q' || k === 'fields') {
        continue
      }
      // Add a term filter.
      const isArray = k.endsWith('[]')
-     let fieldName = '{}.raw'.format(isArray ? k.slice(0, k.length - 2) : k)
+     let fieldName = `${isArray ? k.slice(0, k.length - 2) : k}.raw`
      let fieldValues = isArray ? v : [v]
      fieldValues.forEach(fieldValue => {
        filterContext.push({
@@ -379,8 +374,8 @@
    const numHits = response.hits.total.value
    resultsTableEl.innerHTML = `
      <tr>
-       <td>
-         <h4 class="mt-3">
+       <td style="border-top: none;">
+         <h4>
            ${numHits} Result${numHits === 1 ? "" : "s"} found
          </h4>
        </td>
@@ -430,33 +425,6 @@
 
  }
 
-
- /* function facetsClickHandler (e) {
-  *   let target = e.target
-  *   if (!target.dataset.hasOwnProperty('facet')) {
-  *     target = target.parentElement
-  *     if (!target.dataset.hasOwnProperty('facet')) {
-  *       return
-  *     }
-  *   }
-
-  *   const facetName = target.dataset.facet
-  *   const facetValue = target.dataset.value
-  *   const params = new URLSearchParams(location.search)
-  *   const paramKey = `${facetName}[]`
-  *   let paramVals = params.getAll(paramKey)
-
-  *   if (paramVals.includes(paramKey)) {
-  *     paramVals.pop(facetValue)
-  *   } else {
-  *     paramVals.push(facetValue)
-  *   }
-  *   params.delete(paramKey)
-  *   paramVals.forEach(v => params.append(paramKey, v))
-  *   location.search = `?${params.toString()}`
-  * }
-  */
-
  function getSearchParams () {
    // Parse the URL search params, collecting array-type values into actual
    // arrays and return the resulting <key> -> <value(s)> map.
@@ -472,7 +440,74 @@
        console.warn(`Duplicate search key "${k}" does not end with "[]"`)
      }
    }
+   // Split the comma-separated "fields" value.
+   if (params.has('fields')) {
+     params.set('fields', params.get('fields').split(','))
+   }
+
    return params
+ }
+
+ function toggleAdvancedSearchOptionsVisibility () {
+   // Show / hide the advanced search options element.
+   const wrapperEl = document.getElementById("advanced-search")
+   const [ buttonEl, optionsEl ] = wrapperEl.children
+   // TODO - use classList.add/remove instead of property assignment.
+   if (optionsEl.style.display === "block") {
+     wrapperEl.style.border = "none"
+     wrapperEl.style.backgroundColor = "transparent"
+     optionsEl.style.display = "none"
+     buttonEl.innerText = "show advanced options"
+   } else {
+     wrapperEl.style.border = "solid #ccc 1px"
+     wrapperEl.style.borderTop = "none"
+     wrapperEl.style.backgroundColor = "#fafafa"
+     optionsEl.style.display = "block"
+     buttonEl.innerText = "hide advanced options"
+   }
+   buttonEl.blur()
+ }
+
+ function hideAdvancedSearchOptions () {
+   // Hide the advanced search options element if visible.
+   if (document.querySelector('#advanced-search > div:nth-child(2)')
+               .style.display === 'block') {
+     toggleAdvancedSearchOptionsVisibility()
+   }
+ }
+
+ function toggleAdvancedSearchFields (e) {
+   // 'this' is bound to the form element.
+   const checked = e.target.checked
+   this.querySelectorAll('[name="fields[]"]').forEach(
+     el => el.checked = checked
+   )
+ }
+
+ function searchFormSubmitHandler (e) {
+   // Prevent the default submission behavior.
+   e.preventDefault()
+   // Get the form data.
+   const formData = new FormData(e.target)
+   const q = formData.get("q")
+   const fields = formData.getAll("fields[]")
+
+   // Hack to fix a bug for the demo where a new search using the
+   // embeddd input doesn't update the URL.
+   const url = new URL(location.href)
+   const urlSearchParams = new URLSearchParams(url.search)
+   urlSearchParams.set('q', q)
+   urlSearchParams.set('fields', fields.join(','))
+   url.search = urlSearchParams
+   history.pushState(null, document.title, url)
+
+   // Update the search params and do the search.
+   const params = getSearchParams()
+   params.set('q', q)
+   params.set('fields', fields)
+   search(params)
+
+   hideAdvancedSearchOptions()
  }
 
  document.addEventListener('DOMContentLoaded', () => {
@@ -482,23 +517,29 @@
 
    // Set the text input value to reflect the current search string and add
    // a listener to submit on Enter.
-   const inputEl = document.querySelector('input#search')
-   inputEl.value = params.get('q') || ''
-   inputEl.addEventListener('keydown', e => {
-     if (e.key === "Enter") {
-       params.set('q', inputEl.value)
+   const searchForm = document.getElementById('inner-search')
+   searchForm.querySelector('[name=q]').value = params.get('q') || ''
+   // If fields is specified in the params, set the checkboxes accordingly.
+   const fields = params.get('fields')
+   if (fields) {
+     searchForm.querySelectorAll('[name="fields[]"]').forEach(e => {
+       if (!fields.includes(e.value)) {
+         e.removeAttribute('checked')
+       }
+     })
+   }
 
-       // Hack to fix a bug for the demo where a new search using the
-       // embeddd input doesn't update the URL.
-       const url = new URL(location.href)
-       const urlSearchParams = new URLSearchParams(url.search)
-       urlSearchParams.set('q', inputEl.value)
-       url.search = urlSearchParams
-       history.pushState(null, document.title, url)
+   // Register the search form submit handler.
+   const searchEl = document.getElementById("inner-search")
+   searchEl.addEventListener("submit", searchFormSubmitHandler)
 
-       search(params)
-     }
-   })
+   // Add advanced search options toggle listener.
+   document.querySelector("#advanced-search > button")
+     .addEventListener("click", toggleAdvancedSearchOptionsVisibility)
+
+   // Add advanced search fields toggle listener.
+   document.getElementById('include-fields-toggle')
+     .addEventListener('change', toggleAdvancedSearchFields.bind(searchEl))
 
    window.addEventListener('popstate', () => {
      search(getSearchParams())

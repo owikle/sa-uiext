@@ -122,6 +122,12 @@
  // Utility Functions
  //////////////////////////////////////////////////////////////////////////////
 
+ // Convert snake-case string to a Title String.
+ const snakeToTitleCase = s =>
+   s.split("_")
+    .map(s=> s[0].toUpperCase() + s.slice(1))
+    .join(" ")
+
  function createElement (domString) {
    // Return an HTML element object for the given DOM string.
    const wrapper = document.createElement('div')
@@ -137,11 +143,6 @@
  //////////////////////////////////////////////////////////////////////////////
 
  const NUM_VISIBLE_FACET_VALUES = 5
-
- // Convert the facet name to a title.
- const facetNameToTitle = s => s.replace('_', ' ')
-                                .replace(/\b[a-z]/g, (x) => x.toUpperCase())
-
 
  function toggleFacetValueSelection (name, value) {
    const params = new URLSearchParams(location.search)
@@ -196,7 +197,7 @@
                   white-space: nowrap;
                   padding-right: 5em;
                   position: relative;">
-         ${facetNameToTitle(facetName)}
+         ${snakeToTitleCase(facetName)}
          <span style="position: absolute;
                       right: 1em;
                       font-weight: bold;

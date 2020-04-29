@@ -65,7 +65,9 @@ layout: page
               <div style="font-size: .8em; color: #444;">
                 <input type="checkbox" name="fields[]" value="{{ f.field }}"
                        id="include-field-{{ f.field }}" checked />
-                <label for="include-field-{{ f.field }}">{{ f.field }}</label>
+                <label for="include-field-{{ f.field }}">
+                  {{ f.field | replace: "_", " " | capitalize }}
+                </label>
               </div>
               {% endfor %}
             </div>

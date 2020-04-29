@@ -46,8 +46,9 @@ layout: page
 <!-- Elasticsearch layout -->
 <table>
   <tr>
-    <td id="facets" class="align-top"></td>
-    <td class="align-top">
+    <td id="facets" class="align-top" style="min-width: 14em;">
+    </td>
+    <td class="align-top" style="min-width: 24em;">
       <div class="ml-3">
         <form id="inner-search">
           <input type="text" name="q" class="form-control" placeholder="Enter your search term...">
@@ -88,7 +89,18 @@ layout: page
             </div>
           </div>
         </form>
-        <table id="results" class="table table-responsive"></table>
+        <table id="results" class="table table-responsive">
+          <thead>
+            <tr>
+              <td style="border-top: none;">
+                <h4 class="num-hits">
+                </h4>
+              </td>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
       </div>
     </td>
   </tr>
@@ -147,4 +159,29 @@ layout: page
     <span class="facet-value-doc-count" style="position: absolute; right: 1em;"></span>
   </div>
 </template>
+
+<template id="result">
+  <tr>
+    <td style="display: flex;">
+      <div class="preview-image">
+        <a href="#">
+          <img src="" style="width: 100px; height: auto;">
+        </a>
+      </div>
+      <div class="details">
+        <p class="h4 ml-3">
+          <a href="#">
+          </a>
+        </p>
+        <!-- items get append here -->
+      </div>
+    </td>
+  </tr>
+</template>
+
+<template id="result-details-item">
+  <p class="ml-3 mb-1">
+  </p>
+</template>
+
 {% endif %}

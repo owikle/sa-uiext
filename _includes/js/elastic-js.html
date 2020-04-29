@@ -128,6 +128,8 @@
     .map(s=> s[0].toUpperCase() + s.slice(1))
     .join(" ")
 
+ const clone = tmplEl => tmplEl.content.cloneNode(true).children[0]
+
  function createElement (domString) {
    // Return an HTML element object for the given DOM string.
    const wrapper = document.createElement("div")
@@ -182,7 +184,7 @@
 
    // Clone the facet template element.
    const facetTemplate = document.getElementById("facet")
-   const facetEl = facetTemplate.content.cloneNode(true).children[0]
+   const facetEl = clone(facetTemplate)
 
    // Set the facet name by updating the text node while leaving the
    // collapsed-icon <span> alone.
@@ -194,7 +196,7 @@
    const facetValueTemplate = document.getElementById("facet-value")
    buckets.forEach((bucket, i) => {
      // Clone the facet-value template element.
-     const facetValueEl = facetValueTemplate.content.cloneNode(true).children[0]
+     const facetValueEl = clone(facetValueTemplate)
      // Set the data-facet/value attributes.
      facetValueEl.dataset["facet"] = facetName
      facetValueEl.dataset["value"] = bucket.key
@@ -229,7 +231,7 @@
    const moreOrFewerEl = facetEl.querySelector(".show-more")
 
    // Get the rows that will be controlled by the show more/less feature.
-   const moreRowEls = rowEls.slice(NUM_VISIBLE_FACET_VALUES, rowEls.length - 1)
+   const moreRowEls = rowEls.slice(NUM_VISIBLE_FACET_VALUES, rowEls.length)
 
    // Hide values that exceed the number of default visible.
    const toggleShowMore = () => {
@@ -257,19 +259,18 @@
      if (!collapsed) {
        // Hide all the rows.
        rowEls.forEach(el => el.style.display = "none")
+       moreOrFewerEl.style.display = "none"
      } else {
-       // Iterate through all but the last row, setting visibility based on
+       // Iterate through the facet value rows, setting visibility based on
        // whether there are normally hidden rows and, if so, the state of
        // show more/less.
-       rowEls.slice(0, rowEls.length - 1).forEach((el, i) => {
+       rowEls.forEach((el, i) => {
          if (moreRowEls.length === 0 ||
              (!showMore || i < NUM_VISIBLE_FACET_VALUES)) {
            el.style.display = "block"
          }
        })
-       // Always show the last row, which is either a show-more/less div or
-       // a facet value.
-       rowEls[rowEls.length - 1].style.display = "block"
+       moreOrFewerEl.style.display = "block"
      }
 
      collapsedIconEl.innerText = collapsed ? "-" : "+"
@@ -337,8 +338,9 @@
 
  function renderResults (response) {
    // Get the results table and remove any existing children.
-   const resultsTableEl = document.querySelector("#results")
-   Array.from(resultsTableEl.children).forEach(el => el.remove())
+   const resultsTableEl = document.getElementById("results")
+   const resultsTableBodyEl = resultsTableEl.querySelector("tbody")
+   Array.from(resultsTableBodyEl.children).forEach(el => el.remove())
 
    if (response === null) {
      return
@@ -353,41 +355,41 @@
    ]
    const itemsPath = "{{ "/items/" | relative_url }}"
 
-   // Generate the results table HTML.
+   // Show the number of hits.
    const numHits = response.hits.total.value
-   resultsTableEl.innerHTML = `
-     <tr>
-       <td style="border-top: none;">
-         <h4>
-           ${numHits} Result${numHits === 1 ? "" : "s"} found
-         </h4>
-       </td>
-     </tr>
-     ${response.hits.hits.map(hit => `
-     <tr>
-       <td style="display: flex;">
-         <div>
-           <a href="${itemsPath}${hit._source.objectid}.html">
-             <img src="{{ site.digital-objects }}/thumbs/${hit._source.objectid}_th.jpg"
-                  style="width: 100px; height: auto;">
-           </a>
-         </div>
-         <div>
-           <p class="h4 ml-3">
-             <a href="${itemsPath}${hit._source.objectid}.html">
-               ${hit._source[fieldNames[0]]}
-             </a>
-           </p>
-           ${fieldNames.slice(1).map(fieldName => `
-           <p class="ml-3 mb-1">
-             ${hit._source[fieldName]}
-           </p>
-           `).join("")}
-         </div>
-       </td>
-     </tr>
-     `).join("")}
-   `
+   resultsTableEl.querySelector(".num-hits").textContent =
+     `${numHits} Result${numHits === 1 ? "" : "s"} found`
+
+   // Add each result to the results table.
+   const resultTemplate = document.getElementById("result")
+   const resultDetailsItemTemplate = document.getElementById("result-details-item")
+   response.hits.hits.forEach(hit => {
+     // Clone the result template element.
+     const resultEl = clone(resultTemplate)
+
+     // Set the preview image href and src attributes.
+     const imgContainerEl = resultEl.querySelector(".preview-image")
+     const itemUrl = `${itemsPath}${hit._source.objectid}.html`
+     imgContainerEl.querySelector("a").href = itemUrl
+     imgContainerEl.querySelector("img").src =
+       `{{ site.digital-objects }}/thumbs/${hit._source.objectid}_th.jpg`
+
+     // Set the title href and text.
+     const detailsEl = resultEl.querySelector(".details")
+     const titleEl = detailsEl.querySelector("a")
+     titleEl.href = itemUrl
+     titleEl.textContent = hit._source[fieldNames[0]]
+
+     // Add each details field value.
+     fieldNames.slice(1).forEach(fieldName => {
+       const detailsItemEl = clone(resultDetailsItemTemplate)
+       detailsItemEl.textContent = hit._source[fieldName]
+       detailsEl.appendChild(detailsItemEl)
+     })
+
+     // Append the result to the results table.
+     resultsTableBodyEl.appendChild(resultEl)
+   })
  }
 
  /* search function */

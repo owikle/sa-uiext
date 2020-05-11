@@ -1,3 +1,9 @@
+"""
+From the collection metadata and extracted document text files, generate an
+Elasticsearch Bulk API input file as described here:
+https://www.elastic.co/guide/en/elasticsearch/reference/7.6/docs-bulk.html
+
+"""
 
 require 'csv'
 require 'optparse'

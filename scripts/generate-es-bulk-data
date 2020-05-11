@@ -49,7 +49,7 @@ def main(metadata_fh, search_config_fh, text_path, output_fh):
         )
 
         # Write the optional_source line.
-        output_fh.write('{}\n'.format(json.dumps(item)))
+        output_fh.write(u'{}\n'.format(json.dumps(item, separators=(',', ':'), ensure_ascii=False)))
         num_items += 1
 
     print('Wrote {} items to: {}'.format(num_items, output_fh.name))
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('metadata_file', type=argparse.FileType('r'))
     parser.add_argument('search_config_file', type=argparse.FileType('r'))
     parser.add_argument('extracted_text_dir')
-    parser.add_argument('output_file', type=argparse.FileType('w'))
+    parser.add_argument('output_file', type=argparse.FileType('w', encoding="utf-8"))
     args = parser.parse_args()
 
     main(args.metadata_file, args.search_config_file,

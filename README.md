@@ -12,15 +12,15 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 
 All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell script or a ruby script, with some having additional software or service dependencies as detailed below:
 
-| filename | script type | software dependencies | service dependencies |
+| name | type | software dependencies | service dependencies |
 | --- | --- | --- | --- |
-| generate-derivatives | bash | ImageMagick 7 (or compatible), Ghostscript 9.52 (or compatible) | |
-| sync-objects | bash | AWS Command Line Interface | Digital Ocean Space or AWS S3 Bucket |
-| generate-es-index-settings.rb | ruby | | |
-| create-es-index | bash | | Elasticsearch |
-| extract-pdf-text | bash | xpdf | |
-| generate-es-bulk-data.rb | ruby | |
-| load-es-bulk-data | bash | Elasticsearch |
+| <pre>generate-derivatives</pre> | bash | ImageMagick 7 (or compatible), Ghostscript 9.52 (or compatible) | |
+| <pre>sync-objects</pre> | bash | AWS Command Line Interface | Digital Ocean Space or AWS S3 Bucket |
+| <pre>generate-es-index-settings.rb</pre> | ruby | | |
+| <pre>create-es-index</pre> | bash | | Elasticsearch |
+| <pre>extract-pdf-text</pre> | bash | xpdf | |
+| <pre>generate-es-bulk-data.rb</pre> | ruby | |
+| <pre>load-es-bulk-data</pre> | bash | Elasticsearch |
 
 
 #### Install the Required Software Dependencies

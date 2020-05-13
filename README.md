@@ -131,11 +131,14 @@ sync-objects <path-to-your-assets-directory> <space-or-bucket-name> [EXTRA "aws 
 ```
 Here's a [summary of available `aws s3 sync` args](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
 
-In using a Digital Ocean Space, you also need to specify your Space's ENDPOINT value as a prefix to the script command:
+If using a Digital Ocean Space, you also need to specify your Space's ENDPOINT value as a prefix to the script command:
 
 ```
-ENDPOINT=<endpoint-host> sync-objects ...
+ENDPOINT=<endpoint-url> sync-objects ...
 ```
+You can get your endpoint URL by going to https://cloud.digitalocean.com/spaces/, selecting your space, hovering over the `Endpoints` text and clicking on "Copy URL" next to the "Origin" URL that appears:
+  
+![Screenshot from 2020-05-13 15-28-55](https://user-images.githubusercontent.com/585182/81856866-63e25400-952f-11ea-8aa5-30b01b87a3d3.png)
 
 
 ### 4. Set your search configuration in `config-search.csv` and use `generate-es-index-settings` and `create-es-index` to create your search index.

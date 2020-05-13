@@ -8,7 +8,7 @@ fi
 if [ -z "$ENDPOINT" ]; then
     ENDPOINT_ARG=""
 else
-    ENDPOINT_ARG="--endpoint-url=https://$ENDPOINT"
+    ENDPOINT_ARG="--endpoint-url=$ENDPOINT"
 fi
 
 # Trim any trailing slash from the objects dir path.

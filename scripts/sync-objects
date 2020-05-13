@@ -1,11 +1,19 @@
 #!/bin/bash
 
-if [ "$#" -lt 1 ]; then
-    echo "usage: `basename $0` OBJECTS_DIR [EXTRA \"aws s3 sync\" ARGS] "
+if [ "$#" -lt 2 ]; then
+    echo "usage: `basename $0` SPACE_OR_BUCKET_NAME OBJECTS_DIR [EXTRA \"aws s3 sync\" ARGS] "
     exit 1
+fi
+
+if [ -z "$ENDPOINT" ]; then
+    ENDPOINT_ARG=""
+else
+    ENDPOINT_ARG="--endpoint-url=https://$ENDPOINT"
 fi
 
 # Trim any trailing slash from the objects dir path.
 OBJECTS_DIR=`pwd`/${1%/}
 
-aws --endpoint-url=https://$DO_ENDPOINT s3 sync --acl=public-read $OBJECTS_DIR/ s3://$DO_SPACE/ ${@:2}
+BUCKET=$2
+
+aws $ENDPOINT_ARG s3 sync --acl=public-read $OBJECTS_DIR/ s3://$BUCKET/ ${@:3}

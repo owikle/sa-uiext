@@ -10,7 +10,7 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 
 ### 0. Prerequisites
 
-All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell script or a ruby script, with some having additional software or service dependencies as detailed below:
+All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell or ruby script, with some additional software or service dependencies as detailed below:
 
 | name | type | software dependencies | service dependencies |
 | --- | --- | --- | --- |
@@ -87,7 +87,9 @@ sudo ./aws/install
 
 
 ### 1. Create your metadata CSV file and organize your assets into a single directory.
+
 For example, in the directory: `~/collection/objects`
+
 
 ### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
 
@@ -121,22 +123,20 @@ DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
 ```
 
 
-### 3. Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
+### 3. If using a Digital Ocean Space or AWS S3 Bucket to serve your collection assets, use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/sync-objects) script to upload the assets and their derivatives.
+
 Usage:
 ```
-sync-objects <path-to-your-assets-directory> [EXTRA "aws s3 sync" ARGS]
+sync-objects <path-to-your-assets-directory> <space-or-bucket-name> [EXTRA "aws s3 sync" ARGS]
 ```
 Here's a [summary of available `aws s3 sync` args](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
 
-This script also requires a couple of configuration values relating to your DO Space, namely the Space name and endpoint host. These can either be specified as environment variables:
+In using a Digital Ocean Space, you also need to specify your Space's ENDPOINT value as a prefix to the script command:
+
 ```
-export DO_ENDPOINT=<endpoint-host>
-export DO_SPACE=<space-name>
+ENDPOINT=<endpoint-host> sync-objects ...
 ```
-or as prefixes to the script:
-```
-DO_ENDPOINT=<endpoint-host> DO_SPACE=<space-name> sync-objects ...
-```
+
 
 ### 4. Set your search configuration in `config-search.csv` and use `generate-es-index-settings` and `create-es-index` to create your search index.
 

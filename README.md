@@ -5,12 +5,36 @@ uses data from [Moscon](https://www.lib.uidaho.edu/digital/moscon/), but not rea
 Objects are simply in a folder.
 Every object has an image in "thumbs" and "small" named after `objectid`, and an original object item in the root folder named after `filename` column.
 
+
 ## Website generation and deployment steps
 
 ### 1. Create your metadata CSV file and organize your assets into a single directory.
 For example, in the directory: `~/collection/objects`
 
 ### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
+
+#### Prerequisites
+
+`generate-derivatives` uses [ImageMagick 7 (or compatible)](https://imagemagick.org/script/download.php) and [Ghostscript 9.52 (or compatible)](https://www.ghostscript.com/download/gsdnld.html) to generate derivatives for images and PDFs.
+
+The script expects the following executables in the system path:
+- ImageMagick as "magick"
+- Ghostscript as "gs"
+
+Here's an example of installing these applications in Ubuntu:
+```
+# Install ImageMagick
+curl https://imagemagick.org/download/binaries/magick -O
+chmod +x magick
+sudo mv magick /usr/local/bin/
+
+# Install ghostscript
+curl -L https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs952/ghostscript-9.52-linux-x86_64.tgz -O
+tar xf ghostscript-9.52-linux-x86_64.tgz
+sudo mv gs-952-linux-x86_64 /usr/local/bin/gs
+rm -rf ghostscript-9.52-linux-x86_64
+```
+
 
 Usage:
 ```
@@ -40,6 +64,7 @@ For example, to override `DENSITY` and force regeneration of all derivatives, no
 ```
 DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
 ```
+
 
 ### 3. Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
 Usage:
@@ -108,7 +133,7 @@ extract-pdf-text ~/collection/objects /tmp/extracted_pdf_text
 
 Usage:
 ```
-generate-es-bulk-data <metadata-file-path> <extracted-pdf-text-files-path> <output-file-path> 
+generate-es-bulk-data <metadata-file-path> <extracted-pdf-text-files-path> <output-file-path>
 ```
 
 Example:

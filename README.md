@@ -8,33 +8,88 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 
 ## Website generation and deployment steps
 
+### 0. Prerequisites
+
+All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell script or a ruby script, with some having additional software or service dependencies as detailed below:
+
+| filename | script type | software dependencies | service dependencies |
+| --- | --- | --- | --- |
+| generate-derivatives | bash | ImageMagick 7 (or compatible), Ghostscript 9.52 (or compatible) | |
+| sync-objects | bash | AWS Command Line Interface | Digital Ocean Space or AWS S3 Bucket |
+| generate-es-index-settings.rb | ruby | | |
+| create-es-index | bash | | Elasticsearch |
+| extract-pdf-text | bash | xpdf | |
+| generate-es-bulk-data.rb | ruby | |
+| load-es-bulk-data | bash | Elasticsearch |
+
+
+#### Install the Required Software Dependencies
+
+##### ImageMagick 7
+ImageMagick is used by `generate-derivatives` to create small and thumbnail images from `.jpg` and `.pdf` (with Ghostscript) collection object files.
+
+Download the appropriate executable for your operating system here: https://imagemagick.org/script/download.php
+
+The scripts expect this to be executable via the command `magick`.
+
+Here's an example of installation under Ubuntu:
+```
+curl https://imagemagick.org/download/binaries/magick -O
+chmod +x magick
+sudo mv magick /usr/local/bin/
+```
+
+
+##### Ghostscript 9.52
+Ghostscript is used behind the scenes by ImageMagick in `generate-derivatives` to create small and thumbnail images from `.pdf` collection object files.
+
+Download the appropriate executable for your operating system here: https://www.ghostscript.com/download/gsdnld.html
+
+The scripts expect this to be executable via the command `gs`.
+
+Here's an example of installation under Ubuntu:
+```
+curl -L https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs952/ghostscript-9.52-linux-x86_64.tgz -O
+tar xf ghostscript-9.52-linux-x86_64.tgz
+sudo mv gs-952-linux-x86_64 /usr/local/bin/gs
+rm -rf ghostscript-9.52-linux-x86_64*
+```
+
+
+##### Xpdf 4.02
+The `pdftotext` utility in the Xpdf package is used by `extract-pdf-text` to extract text from `.pdf` collection object files.
+
+Download the appropriate executable for your operating system under the "... command line tools" section here: http://www.xpdfreader.com/download.html
+
+The scripts expect this to be executable via the command `pdftotext`.
+
+Here's an example of installation under Ubuntu:
+```
+curl https://xpdfreader-dl.s3.amazonaws.com/xpdf-tools-linux-4.02.tar.gz -O
+sudo mv xpdf-tools-linux-4.02/bin64/pdftotext /usr/local/bin/
+rm -rf xpdf-tools-linux-4.02*
+```
+
+
+##### AWS Command Line Interface
+The AWS CLI is used by `sync-objects` to upload objects to a cloud-hosted Digital Ocean Space or AWS S3 Bucket.
+
+Download the appropriate executable for your operating system here: https://aws.amazon.com/cli/
+
+The scripts expect this to be executable via the command `aws`.
+
+Here's an example of installation under Ubuntu:
+```
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+
 ### 1. Create your metadata CSV file and organize your assets into a single directory.
 For example, in the directory: `~/collection/objects`
 
 ### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
-
-#### Prerequisites
-
-`generate-derivatives` uses [ImageMagick 7 (or compatible)](https://imagemagick.org/script/download.php) and [Ghostscript 9.52 (or compatible)](https://www.ghostscript.com/download/gsdnld.html) to generate derivatives for images and PDFs.
-
-The script expects the following executables in the system path:
-- ImageMagick as "magick"
-- Ghostscript as "gs"
-
-Here's an example of installing these applications in Ubuntu:
-```
-# Install ImageMagick
-curl https://imagemagick.org/download/binaries/magick -O
-chmod +x magick
-sudo mv magick /usr/local/bin/
-
-# Install ghostscript
-curl -L https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs952/ghostscript-9.52-linux-x86_64.tgz -O
-tar xf ghostscript-9.52-linux-x86_64.tgz
-sudo mv gs-952-linux-x86_64 /usr/local/bin/gs
-rm -rf ghostscript-9.52-linux-x86_64
-```
-
 
 Usage:
 ```
@@ -156,96 +211,14 @@ load-es-bulk-data http://localhost:9200 /tmp/bulk_data.csv
 ### 6. - N. Do a bunch of other things
 
 
-## Using Docker
-Docker and Docker Compose provide a means of defining and executing an application from within an isolated and deterministic environment.
-
-### Prerequisites
-
-1. Install the corresponding version of Docker for your operating system
-- Sever for Linux, e.g. [Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-- [Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
-- [Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
-
-2. If using Linux, also [install Docker Compose](https://docs.docker.com/compose/install/) (_Compose is included in Docker Desktop for Mac and Windows_)
-
-### Concepts
-Here's the [Official Docker Concepts guide](https://docs.docker.com/get-started/#docker-concepts)
-
-My summary:
-
-An **Image** can be thought of as a virtual hard drive that has some operating system and other programs installed on it.
-
-A **Container** can be thought of as a virtual computer that uses a pre-built **Image** as the hard drive.
-
-A `Dockerfile` allows you to define how a custom image should be built, starting with the specification of a base image (e.g. `FROM ubuntu:18.04`) and one or more `RUN` commands which, during the image build process, will be executed as shell commands withing a container running on the base image.
-
-As an example, given the `Dockerfile`:
-
-```
-FROM ubuntu:18.04
-
-RUN apt update && apt install -y curl
-
-CMD ["/bin/bash"]
-```
-
-You can build this image, and tag it with the name "test-image", using the command:
-```
-docker build . -t test-image
-```
-
-During the build, it will:
-1. Download the base `ubuntu:18.04` image from [dockerhub](https://hub.docker.com/)
-2. Spawn a container running on the base image
-3. Run the shell command `apt update && apt install -y curl` to update the system package list and install `curl`
-4. Save the current container filesystem state (i.e. with `curl` installed) on top of the base image
-5. Set `/bin/bash` as the default command to execute when you run this image
-
-You can then run this image using the command:
-```
-docker run -it test-image
-```
-which will give you a Bash prompt within a running container that looks something like this:
-```
-root@884ff839efa9:/#
-```
-The `-it` flags in the `build` command indicate that you intend to interact with it.
-
-
-### Create the Environment File
-`docker-compose.yml` [specifies that a file called `.env`](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/docker-compose.yml#L5) will be used to configure environment variables within the running container.
-
-Since we don't want to commit secret values to the repo, the environment variable keys with empty values have been specified in the file: [env-template](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/env-template)
-
-To create the `.env` file:
-
-1. `cp env-template .env`
-
-2. Edit `.env` with a text editor and fill in all the missing values.
-
-
-### Start the Local Web Server
-
-In a terminal, navigate to the root directory of this repository where the `Dockerfile` and `docker-compose.yml` files are located.
-
-The first time you execute one of the below `docker-compose ... up` commands, the `collectionbuilder` Docker image will be automatically built, which will take some time.
+### 7. Start the Development Web Server
 
 #### Development Mode
-In this mode, Jekyll will build a non-production site that references collection assets in the local `<repoRoot>/objects/` directory.
 ```
-docker-compose up
+jekyll s -H 0.0.0.0 -P 4000 --config=_config.yml
 ```
-You should now be able to access the server at: http://localhost:4000/demo/moscon/
 
-#### Production-preview Mode
-In this mode, Jekyll will build a non-production site that references collection assets in a Digital Ocean Space.
+#### Production-Preview Mode
 ```
-docker-compose -f docker-compose.production_preview.yml up
-```
-You should now be able to access the server at: http://localhost:4000/demo/moscon/
-
-
-### Generate the Production Site
-```
-docker-compose -f docker-compose.production.yml up
+jekyll s -H 0.0.0.0 -P 4000 --config=_config.yml,_config.production_preview.yml
 ```

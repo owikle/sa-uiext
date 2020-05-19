@@ -76,14 +76,14 @@ task :generate_derivatives, [:thumbs_size, :small_size, :density, :missing] do |
 
     # Generate the thumb image.
     thumb_filename=File.join([thumbs_path, "#{base_filename}_th.jpg"])
-    if !args.missing or !File.exists?(thumb_filename)
+    if args.missing == 'false' or !File.exists?(thumb_filename)
       puts "Creating: #{thumb_filename}";
       system("#{magick_cmd} -resize #{args.thumbs_size} -flatten #{thumb_filename}")
     end
 
     # Generate the small image.
     small_filename = File.join([small_path, "#{base_filename}_sm.jpg"])
-    if !args.missing or !File.exists?(small_filename)
+    if args.missing == 'false' or !File.exists?(small_filename)
       puts "Creating: #{small_filename}";
       system("#{magick_cmd} -resize #{args.small_size} -flatten #{small_filename}")
     end

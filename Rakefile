@@ -1,7 +1,6 @@
 
 require 'csv'
 require 'json'
-require 'optparse'
 require 'yaml'
 
 
@@ -16,13 +15,6 @@ $ensure_dir_exists = ->(dir) { if !Dir.exists?(dir) then Dir.mkdir(dir) end }
 def load_config
   # Read the config file and validate and return the values required by rake tasks.
   config = YAML.load_file('_config.yml')
-
-  # Read the metadata_path.
-  metadata = config['metadata']
-  if !metadata
-    raise "metadata must be defined in _config.yml"
-  end
-  metadata_path = File.join(['_data', "#{metadata}.csv"])
 
   # Read the objects path.
   objects_dir = config['digital-objects']
@@ -40,13 +32,24 @@ def load_config
   # Strip any trailing slash.
   objects_dir = objects_dir.chomp('/')
 
+  # Load the collection metadata.
+  metadata_name = config['metadata']
+  if !metadata_name
+    raise "metadata must be defined in _config.yml"
+  end
+  metadata = CSV.parse(File.read(File.join(['_data', "#{metadata_name}.csv"])), headers: true)
+
+  # Load the search configuration.
+  search_config = CSV.parse(File.read(File.join(['_data', 'config-search.csv'])), headers: true)
+
   return {
-    :metadata_path => metadata_path,
     :objects_dir => objects_dir,
     :thumb_image_dir => File.join([objects_dir, 'thumbs']),
     :small_image_dir => File.join([objects_dir, 'small']),
     :extracted_pdf_text_dir => File.join([objects_dir, 'extracted_text']),
     :elasticsearch_dir => File.join([objects_dir, 'elasticsearch']),
+    :metadata => metadata,
+    :search_config => search_config,
   }
 end
 
@@ -159,20 +162,18 @@ task :generate_es_bulk_data do
 
   config = load_config
 
-  metadata_table = CSV.parse(File.read(config[:metadata_path]), headers: true)
-
   # Create a search config <fieldName> => <configDict> map.
   field_config_map = {}
-  CSV.parse(File.read(File.join(['_data', 'config-search.csv'])), headers: true).each do |row|
+  config[:search_config].each do |row|
     field_config_map[row["field"]] = row
   end
 
   output_dir = config[:elasticsearch_dir]
   $ensure_dir_exists.call output_dir
-  output_path = File.join([output_dir, "es_bulk_data.json"])
+  output_path = File.join([output_dir, "es_bulk_data.jsonl"])
   output_file = File.open(output_path, {mode: "w"})
   num_items = 0
-  metadata_table.each do |item|
+  config[:metadata].each do |item|
     # Remove any fields with an empty value.
     item.delete_if { |k, v| v.nil? }
 
@@ -201,4 +202,120 @@ task :generate_es_bulk_data do
   end
 
   puts "Wrote #{num_items} items to: #{output_path}"
+end
+
+
+###############################################################################
+# generate_es_index_settings
+###############################################################################
+
+"""
+Generate a file that comprises the Mapping settings for the Elasticsearch index
+from the configuration specified in _data/config.search.yml
+
+https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html
+"""
+
+desc "Generate the settings file that we'll use to create the Elasticsearch index"
+task :generate_es_index_settings do
+  TEXT_FIELD_DEF_KEYS = [ 'field' ]
+  BOOL_FIELD_DEF_KEYS = [ 'index', 'display', 'facet', 'multi-valued' ]
+  VALID_FIELD_DEF_KEYS = TEXT_FIELD_DEF_KEYS.dup.concat BOOL_FIELD_DEF_KEYS
+  INDEX_SETTINGS_TEMPLATE = {
+    mappings: {
+      dynamic_templates: [
+        {
+          store_as_unindexed_text: {
+            match_mapping_type: "*",
+            mapping: {
+              type: "text",
+              index: false
+            }
+          }
+        }
+      ],
+      properties: {
+        # Always include objectid.
+        objectid: {
+          type: "text",
+          index: false
+        }
+      }
+    }
+  }
+
+  def assert_field_def_is_valid field_def
+    # Assert that the field definition is valid.
+    keys = field_def.to_hash.keys
+
+    missing_keys = VALID_FIELD_DEF_KEYS.reject { |k| keys.include? k }
+    extra_keys = keys.reject { |k| VALID_FIELD_DEF_KEYS.include? k }
+    if !missing_keys.empty? or !extra_keys.empty?
+      msg = "The field definition: #{field_def}"
+      if !missing_keys.empty?
+        msg = "#{msg}\nis missing the required keys: #{missing_keys}"
+      end
+      if !extra_keys.empty?
+        msg = "#{msg}\nincludes the unexpected keys: #{extra_keys}"
+      end
+      raise msg
+    end
+
+    invalid_bool_value_keys = BOOL_FIELD_DEF_KEYS.reject { |k| ["true", "false"].include? field_def[k] }
+    if !invalid_bool_value_keys.empty?
+      raise "Expected true/false value for: #{invalid_bool_value_keys.join(", ")}"
+    end
+
+    if field_def["index"] == "false" and
+      (field_def["facet"] == "true" or field_def['multi-valued'] == "true")
+      raise "Field (#{field_def["field"]}) has index=false but other index-related "\
+            "fields (e.g. facet, multi-valued) specified as true"
+    end
+
+    if field_def['multi-valued'] == "true" and field_def['facet'] != "true"
+      raise "If field (#{field_def["field"]}) specifies multi-valued=true, it "\
+            "also needs to specify facet=true"
+    end
+  end
+
+  def convert_field_def_bools field_def
+    # Do an in-place conversion of the bool strings to python bool values.
+    BOOL_FIELD_DEF_KEYS.each do |k|
+      field_def[k] = field_def[k] == "true"
+    end
+  end
+
+  def get_mapping field_def
+    # Return an ES mapping configuration object for the specified field definition.
+    mapping = {
+      type: "text"
+    }
+    if field_def["facet"]
+      mapping["fields"] = {
+        raw: {
+          type: "keyword"
+        }
+      }
+    end
+    return mapping
+  end
+
+  # Main block
+  config = load_config
+
+  index_settings = INDEX_SETTINGS_TEMPLATE.dup
+  config[:search_config].each do |field_def|
+    assert_field_def_is_valid(field_def)
+    convert_field_def_bools(field_def)
+    if field_def["index"]
+      index_settings[:mappings][:properties][field_def["field"]] = get_mapping(field_def)
+    end
+  end
+
+  output_dir = config[:elasticsearch_dir]
+  $ensure_dir_exists.call output_dir
+  output_path = File.join([output_dir, 'es_index_settings.json'])
+  output_file = File.open(output_path, {mode: "w"})
+  output_file.write(JSON.pretty_generate(index_settings))
+  puts "Wrote: #{output_path}"
 end

@@ -1,8 +1,6 @@
 # CollectionBuilder
 # Jekyll Digital Collection Generator
 
-scratch-dir: scratch
-
 # URL variables
 # site domain
 url:

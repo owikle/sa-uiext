@@ -11,21 +11,11 @@ require 'yaml'
 
 $collection_name_to_index_name = ->(s) { s.downcase.split(" ").join("_") }
 
+$ensure_dir_exists = ->(dir) { if !Dir.exists?(dir) then Dir.mkdir(dir) end }
+
 def load_config
   # Read the config file and validate and return the values required by rake tasks.
   config = YAML.load_file('_config.yml')
-
-  # Read and (if necessary) create the scratch_path.
-  scratch_path = config['scratch-dir']
-  if !scratch_path
-    raise "scratch-dir must be defined in _config.yml"
-  end
-  # Trim any trailing slash.
-  scratch_path = scratch_path.chomp('/')
-  # Maybe create the directory.
-  if !File.exists? scratch_path
-    Dir.mkdir scratch_path
-  end
 
   # Read the metadata_path.
   metadata = config['metadata']
@@ -35,25 +25,28 @@ def load_config
   metadata_path = File.join(['_data', "#{metadata}.csv"])
 
   # Read the objects path.
-  objects_path = config['digital-objects']
-  if !objects_path
+  objects_dir = config['digital-objects']
+  if !objects_dir
     raise "digital-objects must be defined in _config.yml"
   end
   # Strip out any leading baseurl value.
-  if objects_path.start_with? config['baseurl']
-    objects_path = objects_path[config['baseurl'].length..-1]
+  if objects_dir.start_with? config['baseurl']
+    objects_dir = objects_dir[config['baseurl'].length..-1]
     # Trim any leading slash from the objects directory
-    if objects_path.start_with? '/'
-      objects_path = objects_path[1..-1]
+    if objects_dir.start_with? '/'
+      objects_dir = objects_dir[1..-1]
     end
   end
   # Strip any trailing slash.
-  objects_path = objects_path.chomp('/')
+  objects_dir = objects_dir.chomp('/')
 
   return {
-    :objects_path => objects_path,
-    :scratch_path => scratch_path,
-    :metadata_path => metadata_path
+    :metadata_path => metadata_path,
+    :objects_dir => objects_dir,
+    :thumb_image_dir => File.join([objects_dir, 'thumbs']),
+    :small_image_dir => File.join([objects_dir, 'small']),
+    :extracted_pdf_text_dir => File.join([objects_dir, 'extracted_text']),
+    :elasticsearch_dir => File.join([objects_dir, 'elasticsearch']),
   }
 end
 
@@ -83,17 +76,12 @@ task :generate_derivatives, [:thumbs_size, :small_size, :density, :missing] do |
   )
 
   config = load_config
-  objects_path = config[:objects_path]
+  objects_dir = config[:objects_dir]
+  thumb_image_dir = config[:thumb_image_dir]
+  small_image_dir = config[:small_image_dir]
 
-  # Ensure that the derivatives subdirectories exist within the objects_path.
-  thumbs_path = File.join([objects_path, 'thumbs'])
-  small_path = File.join([objects_path, 'small'])
-  [thumbs_path, small_path].each do |dir|
-    if !Dir.exists?(dir)
-      Dir.mkdir(dir)
-      puts "Created #{dir}"
-    end
-  end
+  # Ensure that the output directories exist.
+  [thumb_image_dir, small_image_dir].each &$ensure_dir_exists
 
   EXTNAME_TYPE_MAP = {
     '.jpg' => :image,
@@ -101,7 +89,7 @@ task :generate_derivatives, [:thumbs_size, :small_size, :density, :missing] do |
   }
 
   # Generate derivatives.
-  Dir.glob(File.join([objects_path, '*'])).each do |filename|
+  Dir.glob(File.join([objects_dir, '*'])).each do |filename|
     # Ignore subdirectories.
     if File.directory? filename
       next
@@ -126,14 +114,14 @@ task :generate_derivatives, [:thumbs_size, :small_size, :density, :missing] do |
     base_filename = File.basename(filename)[0..-(extname.length + 1)].downcase
 
     # Generate the thumb image.
-    thumb_filename=File.join([thumbs_path, "#{base_filename}_th.jpg"])
+    thumb_filename=File.join([thumb_image_dir, "#{base_filename}_th.jpg"])
     if args.missing == 'false' or !File.exists?(thumb_filename)
       puts "Creating: #{thumb_filename}";
       system("#{magick_cmd} -resize #{args.thumbs_size} -flatten #{thumb_filename}")
     end
 
     # Generate the small image.
-    small_filename = File.join([small_path, "#{base_filename}_sm.jpg"])
+    small_filename = File.join([small_image_dir, "#{base_filename}_sm.jpg"])
     if args.missing == 'false' or !File.exists?(small_filename)
       puts "Creating: #{small_filename}";
       system("#{magick_cmd} -resize #{args.small_size} -flatten #{small_filename}")
@@ -150,16 +138,12 @@ desc "Extract the text from PDF collection objects"
 task :extract_pdf_text do
 
   config = load_config
-  output_path = File.join([config[:scratch_path], "extracted_pdf_text"])
-
-  # Create the output directory if necessary.
-  if !File.exists? output_path
-    Dir.mkdir output_path
-  end
+  output_dir = config[:extracted_pdf_text_dir]
+  $ensure_dir_exists.call output_dir
 
   # Extract the text.
-  Dir.glob(File.join([config[:objects_path], "*.pdf"])).each do |filename|
-    output_filename = File.join([output_path, "#{File.basename filename}.text"])
+  Dir.glob(File.join([config[:objects_dir], "*.pdf"])).each do |filename|
+    output_filename = File.join([output_dir, "#{File.basename filename}.text"])
     system("pdftotext -enc UTF-8 -eol unix -nopgbrk #{filename} #{output_filename}")
     puts "Wrote #{output_filename}"
   end
@@ -183,8 +167,9 @@ task :generate_es_bulk_data do
     field_config_map[row["field"]] = row
   end
 
-  extracted_pdf_text_path = File.join([config[:scratch_path], 'extracted_pdf_text']).chomp("/")
-  output_path = File.join([config[:scratch_path], "es_bulk_data.json"])
+  output_dir = config[:elasticsearch_dir]
+  $ensure_dir_exists.call output_dir
+  output_path = File.join([output_dir, "es_bulk_data.json"])
   output_file = File.open(output_path, {mode: "w"})
   num_items = 0
   metadata_table.each do |item|
@@ -198,7 +183,7 @@ task :generate_es_bulk_data do
       end
     end
 
-    item_text_path = File.join([extracted_pdf_text_path, "#{item["filename"]}.text"])
+    item_text_path = File.join([config[:extracted_pdf_text_dir], "#{item["filename"]}.text"])
     if File::exists? item_text_path
       full_text = File.read(item_text_path, {mode: "r", encoding: "utf-8"})
       item["full_text"] = full_text

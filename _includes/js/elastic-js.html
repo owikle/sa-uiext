@@ -1,6 +1,6 @@
 {%- assign fields = site.data.config-search -%}
 <script>
- const ES_SEARCH_URL = "http://{{ site.elasticsearch-host }}/{{ site.elasticsearch-index }}/_search"
+ const ES_SEARCH_URL = "{{ site.elasticsearch-protocol }}://{{ site.elasticsearch-host }}:{{ site.elasticsearch-port }}/{{ site.elasticsearch-index }}/_search"
 
  async function executeQuery (searchParams) {
    /* Perform the search and return the response, or return null if something

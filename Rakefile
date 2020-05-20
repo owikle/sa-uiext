@@ -2,6 +2,16 @@
 require 'csv'
 require 'json'
 require 'yaml'
+require 'net/http'
+
+
+###############################################################################
+# Constants
+###############################################################################
+
+$ES_BULK_DATA_FILENAME = 'es_bulk_data.jsonl'
+$ES_INDEX_SETTINGS_FILENAME = 'es_index_settings.json'
+$SEARCH_CONFIG_PATH = File.join(['_data', 'config-search.csv'])
 
 
 ###############################################################################
@@ -40,7 +50,7 @@ def load_config
   metadata = CSV.parse(File.read(File.join(['_data', "#{metadata_name}.csv"])), headers: true)
 
   # Load the search configuration.
-  search_config = CSV.parse(File.read(File.join(['_data', 'config-search.csv'])), headers: true)
+  search_config = CSV.parse(File.read($SEARCH_CONFIG_PATH), headers: true)
 
   return {
     :objects_dir => objects_dir,
@@ -50,6 +60,10 @@ def load_config
     :elasticsearch_dir => File.join([objects_dir, 'elasticsearch']),
     :metadata => metadata,
     :search_config => search_config,
+    :elasticsearch_protocol => config['elasticsearch-protocol'],
+    :elasticsearch_host => config['elasticsearch-host'],
+    :elasticsearch_port => config['elasticsearch-port'],
+    :elasticsearch_index => config['elasticsearch-index'],
   }
 end
 
@@ -170,7 +184,7 @@ task :generate_es_bulk_data do
 
   output_dir = config[:elasticsearch_dir]
   $ensure_dir_exists.call output_dir
-  output_path = File.join([output_dir, "es_bulk_data.jsonl"])
+  output_path = File.join([output_dir, $ES_BULK_DATA_FILENAME])
   output_file = File.open(output_path, {mode: "w"})
   num_items = 0
   config[:metadata].each do |item|
@@ -314,8 +328,48 @@ task :generate_es_index_settings do
 
   output_dir = config[:elasticsearch_dir]
   $ensure_dir_exists.call output_dir
-  output_path = File.join([output_dir, 'es_index_settings.json'])
+  output_path = File.join([output_dir, $ES_INDEX_SETTINGS_FILENAME])
   output_file = File.open(output_path, {mode: "w"})
   output_file.write(JSON.pretty_generate(index_settings))
   puts "Wrote: #{output_path}"
+end
+
+
+###############################################################################
+# create_es_index
+###############################################################################
+
+desc "Create the Elasticsearch index"
+task :create_es_index do
+  config = load_config
+  req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
+  if config[:elasticsearch_protocol] == 'https'
+    req.use_ssl = true
+  end
+  body = File.open(File.join([config[:elasticsearch_dir], $ES_INDEX_SETTINGS_FILENAME]), 'rb').read
+  req.send_request(
+    'PUT',
+    "/#{config[:elasticsearch_index]}",
+    body,
+    { 'Content-Type' => 'application/json' })
+end
+
+
+###############################################################################
+# load_es_bulk_data
+###############################################################################
+
+desc "Load the collection data into the Elasticsearch index"
+task :load_es_bulk_data do
+  config = load_config
+  req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
+  if config[:elasticsearch_protocol] == 'https'
+    req.use_ssl = true
+  end
+  body = File.open(File.join([config[:elasticsearch_dir], $ES_BULK_DATA_FILENAME]), 'rb').read
+  req.send_request(
+    'POST',
+    "/_bulk",
+    body,
+    { 'Content-Type' => 'application/x-ndjson' })
 end

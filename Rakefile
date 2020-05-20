@@ -67,6 +67,21 @@ def load_config
   }
 end
 
+def elasticsearch_ready config
+  # Return a boolean indicating whether the Elasticsearch instance is available.
+  req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
+  if config[:elasticsearch_protocol] == 'https'
+    req.use_ssl = true
+  end
+  begin
+    res = req.send_request('GET', '/')
+  rescue StandardError
+    false
+  else
+    res.code == '200'
+  end
+end
+
 
 ###############################################################################
 # TASK: deploy
@@ -159,11 +174,13 @@ task :extract_pdf_text do
   $ensure_dir_exists.call output_dir
 
   # Extract the text.
+  num_items = 0
   Dir.glob(File.join([config[:objects_dir], "*.pdf"])).each do |filename|
     output_filename = File.join([output_dir, "#{File.basename filename}.text"])
     system("pdftotext -enc UTF-8 -eol unix -nopgbrk #{filename} #{output_filename}")
-    puts "Wrote #{output_filename}"
+    num_items += 1
   end
+  puts "Extracted text from #{num_items} PDFs into: #{output_dir}"
 end
 
 
@@ -336,22 +353,55 @@ end
 
 
 ###############################################################################
+# start_elasticsearch
+###############################################################################
+
+task :start_elasticsearch do
+  config = load_config
+  if elasticsearch_ready config
+    next
+  end
+  # fork + exec to launch the elasticsearch process
+  job = fork do
+    exec 'elasticsearch --quiet'
+  end
+  Process.detach job
+  # Wait for the instance to become available
+  while ! elasticsearch_ready config
+    puts 'Waiting for Elasticsearch...'
+    sleep 2
+  end
+end
+
+
+###############################################################################
 # create_es_index
 ###############################################################################
 
 desc "Create the Elasticsearch index"
-task :create_es_index do
+task :create_es_index => [:start_elasticsearch] do
   config = load_config
   req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
   if config[:elasticsearch_protocol] == 'https'
     req.use_ssl = true
   end
   body = File.open(File.join([config[:elasticsearch_dir], $ES_INDEX_SETTINGS_FILENAME]), 'rb').read
-  req.send_request(
+  res = req.send_request(
     'PUT',
     "/#{config[:elasticsearch_index]}",
     body,
     { 'Content-Type' => 'application/json' })
+
+  if res.code == '200'
+    puts "Created Elasticsearch index: #{config[:elasticsearch_index]}"
+  else
+    data = JSON.load(res.body)
+    if data['error']['type'] == 'resource_already_exists_exception'
+      puts "Elasticsearch index (#{config[:elasticsearch_index]}) already exists"
+    else
+      raise res.body
+    end
+  end
 end
 
 
@@ -360,16 +410,29 @@ end
 ###############################################################################
 
 desc "Load the collection data into the Elasticsearch index"
-task :load_es_bulk_data do
+task :load_es_bulk_data => [:start_elasticsearch] do
   config = load_config
   req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
   if config[:elasticsearch_protocol] == 'https'
     req.use_ssl = true
   end
   body = File.open(File.join([config[:elasticsearch_dir], $ES_BULK_DATA_FILENAME]), 'rb').read
-  req.send_request(
+  res = req.send_request(
     'POST',
     "/_bulk",
     body,
     { 'Content-Type' => 'application/x-ndjson' })
+  if res.code != '200'
+    raise res.body
+  end
+  puts "Loaded data into Elasticsearch"
+end
+
+
+###############################################################################
+# setup_elasticsearch
+###############################################################################
+
+task :setup_elasticsearch => [ :extract_pdf_text, :generate_es_bulk_data, :generate_es_index_settings,
+                               :create_es_index, :load_es_bulk_data] do
 end

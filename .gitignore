@@ -10,3 +10,6 @@ vendor/
 
 # temporarily ignore gemfile.lock
 Gemfile.lock
+
+# Ignore the collection objects
+objects/

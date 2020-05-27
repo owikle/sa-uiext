@@ -7,17 +7,31 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 
 ### 0. Prerequisites
 
-All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell or ruby script, with some additional software or service dependencies as detailed below:
+#### Ruby and Gems
 
-| name | type | software dependencies | service dependencies |
-| --- | --- | --- | --- |
-| <pre>generate-derivatives</pre> | bash | ImageMagick 7 (or compatible), Ghostscript 9.52 (or compatible) | |
-| <pre>sync-objects</pre> | bash | AWS Command Line Interface | Digital Ocean Space or AWS S3 Bucket |
-| <pre>generate-es-index-settings.rb</pre> | ruby | | |
-| <pre>create-es-index</pre> | bash | | Elasticsearch |
-| <pre>extract-pdf-text</pre> | bash | xpdf | |
-| <pre>generate-es-bulk-data.rb</pre> | ruby | |
-| <pre>load-es-bulk-data</pre> | bash | Elasticsearch |
+See: https://collectionbuilder.github.io/docs/software.html#ruby
+
+The code in this repo has been verified to work with the following versions:
+
+| name | version |
+| --- | --- |
+| ruby | 2.7.0 |
+| bundler | 2.1.4 |
+| jekyll | 4.1.0 |
+
+
+#### Rake Task Dependencies
+
+The rake tasks that we'll be using have the following dependencies:
+
+| task name | software dependencies | service dependencies |
+| --- | --- | --- |
+| generate_derivatives | ImageMagick 7 (or compatible), Ghostscript 9.52 (or compatible) | |
+| generate_es_index_settings | | |
+| extract_pdf_text | xpdf | |
+| generate_es_bulk_data | |
+| create_es_index | | Elasticsearch |
+| load_es_bulk_data | | Elasticsearch |
 
 
 #### Install the Required Software Dependencies
@@ -116,18 +130,6 @@ elasticsearch-host: 0.0.0.0
 elasticsearch-port: 9200
 elasticsearch-index: moscon_programs_collection
 ```
-
-##### Ruby and Gems
-
-See: https://collectionbuilder.github.io/docs/software.html#ruby
-
-The code in this repo has been verified to work with the following versions:
-
-| name | version |
-| --- | --- |
-| ruby | 2.7.0 |
-| bundler | 2.1.4 |
-| jekyll | 4.1.0 |
 
 
 ### 1. Collect Your Data

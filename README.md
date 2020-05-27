@@ -51,7 +51,7 @@ Here's an example of installation under Ubuntu:
 ```
 curl -L https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs952/ghostscript-9.52-linux-x86_64.tgz -O
 tar xf ghostscript-9.52-linux-x86_64.tgz
-sudo mv gs-952-linux-x86_64 /usr/local/bin/gs
+sudo mv ghostscript-9.52-linux-x86_64/gs-952-linux-x86_64 /usr/local/bin/gs
 rm -rf ghostscript-9.52-linux-x86_64*
 ```
 
@@ -66,6 +66,7 @@ The scripts expect this to be executable via the command `pdftotext`.
 Here's an example of installation under Ubuntu:
 ```
 curl https://xpdfreader-dl.s3.amazonaws.com/xpdf-tools-linux-4.02.tar.gz -O
+tar xf xpdf-tools-linux-4.02.tar.gz
 sudo mv xpdf-tools-linux-4.02/bin64/pdftotext /usr/local/bin/
 rm -rf xpdf-tools-linux-4.02*
 ```
@@ -83,7 +84,32 @@ Here's an example of installation under Ubuntu:
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
+rm -rf aws awscliv2.zip
 ```
+
+
+##### Elasticsearch 7.7.0
+Download the appropriate executable for your operating system here: https://www.elastic.co/downloads/elasticsearch
+
+Here's an example of installation under Ubuntu:
+```
+curl https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb -O
+curl https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb.sha512 -O
+sha512sum -c elasticsearch-7.7.0-amd64.deb.sha512
+sudo dpkg -i elasticsearch-7.7.0-amd64.deb
+```
+
+###### Configure Elasticsearch
+Add the following lines to your `elasticsearch.yml` configuration file:
+
+```
+network.host: 0.0.0.0
+discovery.type: single-node
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+```
+
+Following the above installation for Ubuntu, `elasticsearch.yml` can be found in the directory `/etc/elasticsearch`
 
 
 ### 1. Create your metadata CSV file and organize your assets into a single directory.

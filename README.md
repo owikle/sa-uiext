@@ -5,9 +5,6 @@ uses data from [Moscon](https://www.lib.uidaho.edu/digital/moscon/), but not rea
 Objects are simply in a folder.
 Every object has an image in "thumbs" and "small" named after `objectid`, and an original object item in the root folder named after `filename` column.
 
-
-## Website generation and deployment steps
-
 ### 0. Prerequisites
 
 All of the files in `scripts/` that we use to complete the following steps are executed as a bash shell or ruby script, with some additional software or service dependencies as detailed below:
@@ -111,13 +108,34 @@ http.cors.allow-origin: "*"
 
 Following the above installation for Ubuntu, `elasticsearch.yml` can be found in the directory `/etc/elasticsearch`
 
+###### Update `_config.yml`
+Update [\_config.yml](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/non-docker/_config.yml#L17-L21) to reflect your Elasticsearch server configuration. E.g.:
+```
+elasticsearch-protocol: http
+elasticsearch-host: 0.0.0.0
+elasticsearch-port: 9200
+elasticsearch-index: moscon_programs_collection
+```
 
-### 1. Get Ready
+##### Ruby and Gems
+
+See: https://collectionbuilder.github.io/docs/software.html#ruby
+
+The code in this repo has been verified to work with the following versions:
+
+| name | version |
+| --- | --- |
+| ruby | 2.7.0 |
+| bundler | 2.1.4 |
+| jekyll | 4.1.0 |
+
+
+### 1. Collect Your Data
 - [create your metadata CSV file](https://collectionbuilder.github.io/docs/metadata.html)
 - place your collection objects in the `<repository>/objects` directory
 
 
-### 2. Set your search configuration in `config-search.csv`
+### 2. Set Your Search Configuration
 
 [config-search.csv](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/_data/config-search.csv) defines the settings for the fields that you want indexed and displayed in search.
 

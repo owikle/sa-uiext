@@ -10,36 +10,39 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 ### 1. Create your metadata CSV file and organize your assets into a single directory.
 For example, in the directory: `~/collection/objects`
 
-### 2. Use the [generate-derivatives](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/generate-derivatives) script to generate a set of images for each of your assets files.
+### 2. Use the `generate_derivatives` rake task to generate a set of images for each of your assets files.
 
 Usage:
 ```
-generate-derivatives <path-to-your-assets-directory>
-```
-Example:
-```
-generate-derivatives ~/collection/objects
+rake generate_derivatives
 ```
 
-This script automatically creates `/small` and `/thumbs` subdirectories as necessary within the assets directory, into which it will put the files that it generates.
+This task automatically creates `/small` and `/thumbs` subdirectories as necessary within the assets directory, into which it will put the files that it generates.
 
-You can specify several options by prepending them to the command like so:
+The following configuration options are available:
+
+| option | description |default value |
+| --- | --- | --- |
+| thumbs_size | the dimensions of the generated thumbnail image | 300x300 |
+| small_size | the dimensions of the generated small image | 800x800 |
+| density | the pixel density used to generate PDF thumbnails | 300 |
+| missing | whether to only generate derivatives that don't already exist | true |
+
+
+You can configure any or all of these options by specifying them in the rake command like so:
 ```
-<option>=<value> [<option>=<value>] generate-derivatives <path-to-your-assets-directory>
+rake generate_derivatives[<thumb_size>,<small_size>,<density>,<missing>]
+```
+Here's an example of overriding all of the option values:
+```
+rake generate_derivatives[100x100,300x300,70,false]
+```
+It's also possible to specify specific options that you want to override, leaving the others at their defaults.
+For example, if you only wanted to set `density` to `70`, you can do:
+```
+rake generate_derivatives[,,70]
 ```
 
-The following options are [defined in the script](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/generate-derivatives#L3-L6) along with their default values:
-```
-THUMBS_SIZE=${THUMBS_SIZE:-"300x300"}
-SMALL_SIZE=${SMALL_SIZE:-"800x800"}
-DENSITY=${DENSITY:-"300"}
-MISSING=${MISSING:-"true"}
-```
-
-For example, to override `DENSITY` and force regeneration of all derivatives, not just those that are `MISSING` (i.e. haven't been generated yet):
-```
-DENSITY=72 MISSING=false generate-derivatives ~/collection/objects
-```
 
 ### 3. Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
 Usage:

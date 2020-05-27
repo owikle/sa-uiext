@@ -1,9 +1,0 @@
-#!/bin/bash
-
-
-if [ "$#" -ne 3 ]; then
-    echo "usage: `basename $0` ES_URL ES_INDEX_NAME ES_INDEX_SETTINGS_FILE"
-    exit 1
-fi
-
-curl -H "Content-Type: application/json" -XPUT "$1/$2" --data-binary @$3

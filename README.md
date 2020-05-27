@@ -232,20 +232,8 @@ Usage:
 rake load_es_bulk_data
 ```
 
-### 6. Maybe Upload Collection Objects to a Digital Ocean Space
-Use the [sync-objects](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/master/scripts/sync-objects) script to upload the assets and their derivatives to your Digital Ocean Space
-Usage:
+### 6. Start the Development Server
 ```
-sync-objects <path-to-your-assets-directory> [EXTRA "aws s3 sync" ARGS]
+jekyll s -H 0.0.0.0
 ```
-Here's a [summary of available `aws s3 sync` args](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html).
 
-This script also requires a couple of configuration values relating to your DO Space, namely the Space name and endpoint host. These can either be specified as environment variables:
-```
-export DO_ENDPOINT=<endpoint-host>
-export DO_SPACE=<space-name>
-```
-or as prefixes to the script:
-```
-DO_ENDPOINT=<endpoint-host> DO_SPACE=<space-name> sync-objects ...
-```

@@ -202,7 +202,7 @@ task :generate_es_bulk_data do
   output_dir = config[:elasticsearch_dir]
   $ensure_dir_exists.call output_dir
   output_path = File.join([output_dir, $ES_BULK_DATA_FILENAME])
-  output_file = File.open(output_path, {mode: "w"})
+  output_file = File.open(output_path, mode: "w")
   num_items = 0
   config[:metadata].each do |item|
     # Remove any fields with an empty value.
@@ -217,7 +217,7 @@ task :generate_es_bulk_data do
 
     item_text_path = File.join([config[:extracted_pdf_text_dir], "#{item["filename"]}.text"])
     if File::exists? item_text_path
-      full_text = File.read(item_text_path, {mode: "r", encoding: "utf-8"})
+      full_text = File.read(item_text_path, mode: "r", encoding: "utf-8")
       item["full_text"] = full_text
     end
 
@@ -346,31 +346,9 @@ task :generate_es_index_settings do
   output_dir = config[:elasticsearch_dir]
   $ensure_dir_exists.call output_dir
   output_path = File.join([output_dir, $ES_INDEX_SETTINGS_FILENAME])
-  output_file = File.open(output_path, {mode: "w"})
+  output_file = File.open(output_path, mode: "w")
   output_file.write(JSON.pretty_generate(index_settings))
   puts "Wrote: #{output_path}"
-end
-
-
-###############################################################################
-# start_elasticsearch
-###############################################################################
-
-task :start_elasticsearch do
-  config = load_config
-  if elasticsearch_ready config
-    next
-  end
-  # fork + exec to launch the elasticsearch process
-  job = fork do
-    exec 'elasticsearch --quiet'
-  end
-  Process.detach job
-  # Wait for the instance to become available
-  while ! elasticsearch_ready config
-    puts 'Waiting for Elasticsearch...'
-    sleep 2
-  end
 end
 
 
@@ -379,7 +357,7 @@ end
 ###############################################################################
 
 desc "Create the Elasticsearch index"
-task :create_es_index => [:start_elasticsearch] do
+task :create_es_index  do
   config = load_config
   req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
   if config[:elasticsearch_protocol] == 'https'
@@ -390,7 +368,8 @@ task :create_es_index => [:start_elasticsearch] do
     'PUT',
     "/#{config[:elasticsearch_index]}",
     body,
-    { 'Content-Type' => 'application/json' })
+    { 'Content-Type' => 'application/json' }
+  )
 
   if res.code == '200'
     puts "Created Elasticsearch index: #{config[:elasticsearch_index]}"
@@ -410,7 +389,7 @@ end
 ###############################################################################
 
 desc "Load the collection data into the Elasticsearch index"
-task :load_es_bulk_data => [:start_elasticsearch] do
+task :load_es_bulk_data do
   config = load_config
   req = Net::HTTP.new(config[:elasticsearch_host], config[:elasticsearch_port])
   if config[:elasticsearch_protocol] == 'https'
@@ -433,6 +412,21 @@ end
 # setup_elasticsearch
 ###############################################################################
 
-task :setup_elasticsearch => [ :extract_pdf_text, :generate_es_bulk_data, :generate_es_index_settings,
-                               :create_es_index, :load_es_bulk_data] do
+task :setup_elasticsearch do
+  Rake::Task['extract_pdf_text'].invoke
+  Rake::Task['generate_es_bulk_data'].invoke
+  Rake::Task['generate_es_index_settings'].invoke
+
+  # Wait for the Elasticsearch instance to be ready.
+  config = load_config
+  while ! elasticsearch_ready config
+    puts 'Waiting for Elasticsearch... Is it running?'
+    sleep 2
+  end
+
+  # TODO - figure out why the index mapping in not right when these two tasks
+  # (create_es_index, load_es_bulk_data) are executed within this task but work
+  # fine when executed individually using rake.
+  Rake::Task['create_es_index'].invoke
+  Rake::Task['load_es_bulk_data'].invoke
 end

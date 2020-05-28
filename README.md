@@ -38,6 +38,7 @@ The rake tasks that we'll be using have the following dependencies:
 | generate_es_bulk_data | |
 | create_es_index | | Elasticsearch |
 | load_es_bulk_data | | Elasticsearch |
+| sync_objects | Digital Ocean Space |
 
 
 #### Install the Required Software Dependencies
@@ -232,3 +233,50 @@ rake load_es_bulk_data
 ```
 jekyll s -H 0.0.0.0
 ```
+
+
+## Setting Up Your Local Production-Preview Environment
+
+The **Preview-Production** environment allows you to configure the local development web server to access the collection objects at a remote source (e.g. Digital Ocean Space) instead of from the local `objects/` directory. This helps to ensure that your remote storage is properly configured before deploying the production site.
+
+### 1. Edit the Production-Preview Configuration
+
+Update the `digital-objects` value in `_config.production_preview.yml` with the "Edge" endpoint URL of your Digital Ocean Space.
+
+### 2. Configure Your AWS Credentials
+
+Digital Ocean Spaces use an API that's compatible with Amazon's AWS S3 service. The `sync_objects` rake task that we use in the next step uses the AWS Ruby SDK to interact with the Digital Ocean Space. To enable `sync_objects` to access the Space, you need to configure your shared AWS credentials as described here: https://docs.aws.amazon.com/sdk-for-ruby/v3/developer-guide/setup-config.html#aws-ruby-sdk-credentials-shared
+
+You can generate your Digital Ocean access key by going to your DO account page and clicking on:
+API -> Spaces access keys -> Generate New Key
+
+### 3. Upload Your Objects to the Digital Ocean Space
+
+Use the `sync_objects` rake task to upload your objects to the Digital Ocean Space.
+
+Usage:
+```
+rake sync_objects
+```
+
+If you're using the AWS `.../.aws/credentials` file approach and you have multiple named profiles, you can specify which profile you'd like to use as follows:
+```
+rake sync_objects[<profile_name>]
+```
+
+For example, to use a profile named "collectionbuilder":
+```
+rake sync_objects[collectionbuilder]
+```
+
+### 3. Start the Production-Preview Server
+
+```
+jekyll s -H 0.0.0.0 --config _config.yml,_config.production_preview.yml
+```
+
+
+
+
+
+

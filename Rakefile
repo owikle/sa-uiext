@@ -63,6 +63,15 @@ def load_config env = :DEVELOPMENT
   # Load the search configuration.
   search_config = CSV.parse(File.read($SEARCH_CONFIG_PATH), headers: true)
 
+  # Set the Elasticsearch host based on whether we're executing with a Docker container.
+  if File.exists?(File.join(['/', '.dockerenv']))
+    # Per the configuration in this repo's docker-compose.yml, assume
+    # that ES is accessible via the hostname 'elasticsearch'
+    elasticsearch_host = 'elasticsearch'
+  else
+    elasticsearch_host = config['elasticsearch-host']
+  end
+
   return {
     :objects_dir => objects_dir,
     :thumb_image_dir => File.join([objects_dir, 'thumbs']),
@@ -72,7 +81,7 @@ def load_config env = :DEVELOPMENT
     :metadata => metadata,
     :search_config => search_config,
     :elasticsearch_protocol => config['elasticsearch-protocol'],
-    :elasticsearch_host => config['elasticsearch-host'],
+    :elasticsearch_host => elasticsearch_host,
     :elasticsearch_port => config['elasticsearch-port'],
     :elasticsearch_index => config['elasticsearch-index'],
   }

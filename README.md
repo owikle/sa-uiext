@@ -5,6 +5,36 @@ uses data from [Moscon](https://www.lib.uidaho.edu/digital/moscon/), but not rea
 Objects are simply in a folder.
 Every object has an image in "thumbs" and "small" named after `objectid`, and an original object item in the root folder named after `filename` column.
 
+### Using Docker
+
+This repository includes `Dockerfile` and `docker-compose.yml` files to enable you to run this application within a Docker container that has all of the prerequisites already installed.
+
+If you dont' already have Docker and Docker Compose installed:
+
+1. Install the corresponding version of Docker for your operating system
+- Sever for Linux, e.g. [Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
+- [Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
+- [Desktop for Windows](https://docs.docker.com/docker-for-windows/install/)
+
+2. If using Linux, also [install Docker Compose](https://docs.docker.com/compose/install/) (_Compose is included in Docker Desktop for Mac and Windows_)
+
+
+#### Get a `bash` Shell Within a Docker Container
+
+The easiest way to develop with Docker is to start a shell session in a container and execute commands just as you would on your local machine. To do this execute:
+```
+docker-compose run -p 4000:4000 collectionbuilder
+```
+
+The very first time you run this, Docker will need to build the image, which may take a while.
+
+Once that command completes, you'll be greeted with a prompt inside the running Docker container, in the working directory `/home/ubuntu/collectionbuilder` which contains this repository's source code. From here you can continue with the steps in the "Setting Up Your Local Development Environment" section below with the following caveat:
+
+1. You don't need to start Elasticsearch because it was automatically started in a companion Docker container
+
+_Note that any changes you make to this repository's directory on your local machine will be reflected within the container, and vice versa._
+
+
 ### 0. Prerequisites
 
 #### Ruby and Gems
@@ -274,9 +304,3 @@ rake sync_objects[collectionbuilder]
 ```
 jekyll s -H 0.0.0.0 --config _config.yml,_config.production_preview.yml
 ```
-
-
-
-
-
-

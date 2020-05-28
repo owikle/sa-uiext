@@ -4,6 +4,8 @@ require 'json'
 require 'yaml'
 require 'net/http'
 
+require 'aws-sdk-s3'
+
 
 ###############################################################################
 # Constants
@@ -12,7 +14,11 @@ require 'net/http'
 $ES_BULK_DATA_FILENAME = 'es_bulk_data.jsonl'
 $ES_INDEX_SETTINGS_FILENAME = 'es_index_settings.json'
 $SEARCH_CONFIG_PATH = File.join(['_data', 'config-search.csv'])
-
+$ENV_CONFIG_FILENAMES_MAP = {
+  :DEVELOPMENT => [ '_config.yml' ],
+  :PRODUCTION_PREVIEW => [ '_config.yml', '_config.production_preview.yml' ],
+  :PRODUCTION => [ '_config.yml', '_config.production.yml' ],
+}
 
 ###############################################################################
 # Helper Functions
@@ -22,9 +28,14 @@ $collection_name_to_index_name = ->(s) { s.downcase.split(" ").join("_") }
 
 $ensure_dir_exists = ->(dir) { if !Dir.exists?(dir) then Dir.mkdir(dir) end }
 
-def load_config
-  # Read the config file and validate and return the values required by rake tasks.
-  config = YAML.load_file('_config.yml')
+def load_config env = :DEVELOPMENT
+  # Read the config files and validate and return the values required by rake
+  # tasks.
+  filenames = $ENV_CONFIG_FILENAMES_MAP[env]
+  config = {}
+  filenames.each do |filename|
+    config.update(YAML.load_file filename)
+  end
 
   # Read the objects path.
   objects_dir = config['digital-objects']
@@ -429,4 +440,75 @@ task :setup_elasticsearch do
   # fine when executed individually using rake.
   Rake::Task['create_es_index'].invoke
   Rake::Task['load_es_bulk_data'].invoke
+end
+
+
+###############################################################################
+# sync_objects
+#
+# Upload objects from your local objects/ dir to a Digital Ocean Space or other
+# S3-compatible storage.
+# For information on how to configure your credentials, see:
+# https://docs.aws.amazon.com/sdk-for-ruby/v3/developer-guide/setup-config.html#aws-ruby-sdk-credentials-shared
+#
+###############################################################################
+
+task :sync_objects, [ :aws_profile ] do |t, args |
+  args.with_defaults(
+    :aws_profile => "default"
+  )
+
+  # Get the local objects directories from the development configuration.
+  dev_config = load_config :DEVELOPMENT
+  objects_dir = dev_config[:objects_dir]
+  thumb_image_dir = dev_config[:thumb_image_dir]
+  small_image_dir = dev_config[:small_image_dir]
+
+  # Get the remove objects URL from the production configuration.
+  s3_url = load_config(:PRODUCTION)[:objects_dir]
+
+  # Derive the S3 endpoint from the URL, with the expectation that it has the
+  # format: <protocol>://<bucket-name>.<region>.cdn.digitaloceanspaces.com
+  # where the endpoint will be: <region>.digitaloceanspaces.com
+  REGEX = /^https?:\/\/(?<bucket>\w+)\.(?<region>\w+)\.cdn.digitaloceanspaces.com$/
+  match = REGEX.match s3_url
+  if !match
+    puts "digital-objects URL \"#{s3_url}\" does not match the expected "\
+         "pattern: \"#{REGEX}\""
+    next
+  end
+  bucket = match[:bucket]
+  region = match[:region]
+  endpoint = "https://#{region}.digitaloceanspaces.com"
+
+  # Create the S3 client.
+  credentials = Aws::SharedCredentials.new(profile_name: args.aws_profile)
+  s3_client = Aws::S3::Client.new(
+    endpoint: endpoint,
+    region: region,
+    credentials: credentials
+  )
+
+  # Iterate over the object files and put each into the remote bucket.
+  num_objects = 0
+  [ objects_dir, thumb_image_dir, small_image_dir ].each do |dir|
+    Dir.glob(File.join([dir, '*'])).each do |filename|
+      # Ignore subdirectories.
+      if File.directory? filename
+        next
+      end
+      key = File.basename(filename)
+      puts "Uploading \"#{filename}\" as \"#{key}\"..."
+      s3_client.put_object(
+        bucket: bucket,
+        key: key,
+        body: File.open(filename, 'rb'),
+        acl: 'public-read'
+      )
+      num_objects += 1
+    end
+  end
+
+  puts "Uploaded #{num_objects} objects"
+
 end

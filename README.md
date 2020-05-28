@@ -18,7 +18,13 @@ The code in this repo has been verified to work with the following versions:
 | ruby | 2.7.0 |
 | bundler | 2.1.4 |
 | jekyll | 4.1.0 |
+| aws-sdk-s3 | 1.66.0 |
 
+After the `bundler` gem is installed, run the following command to install the remaining dependencies specified in the `Gemfile`:
+
+```
+bundle install
+```
 
 #### Rake Task Dependencies
 
@@ -83,22 +89,6 @@ rm -rf xpdf-tools-linux-4.02*
 ```
 
 
-##### AWS Command Line Interface
-The AWS CLI is used by `sync-objects` to upload objects to a cloud-hosted Digital Ocean Space or AWS S3 Bucket.
-
-Download the appropriate executable for your operating system here: https://aws.amazon.com/cli/
-
-The scripts expect this to be executable via the command `aws`.
-
-Here's an example of installation under Ubuntu:
-```
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-rm -rf aws awscliv2.zip
-```
-
-
 ##### Elasticsearch 7.7.0
 Download the appropriate executable for your operating system here: https://www.elastic.co/downloads/elasticsearch
 
@@ -130,6 +120,9 @@ elasticsearch-host: 0.0.0.0
 elasticsearch-port: 9200
 elasticsearch-index: moscon_programs_collection
 ```
+
+
+## Setting Up Your Local Development Environment
 
 
 ### 1. Collect Your Data
@@ -234,8 +227,8 @@ Usage:
 rake load_es_bulk_data
 ```
 
+
 ### 6. Start the Development Server
 ```
 jekyll s -H 0.0.0.0
 ```
-

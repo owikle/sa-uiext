@@ -9,7 +9,7 @@ Every object has an image in "thumbs" and "small" named after `objectid`, and an
 
 This repository includes `Dockerfile` and `docker-compose.yml` files to enable you to run this application within a Docker container that has all of the prerequisites already installed.
 
-If you dont' already have Docker and Docker Compose installed:
+If you don't already have Docker and Docker Compose installed:
 
 1. Install the corresponding version of Docker for your operating system
 - Sever for Linux, e.g. [Ubuntu](https://docs.docker.com/install/linux/docker-ce/ubuntu/)

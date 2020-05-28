@@ -465,7 +465,7 @@ task :sync_objects, [ :aws_profile ] do |t, args |
   small_image_dir = dev_config[:small_image_dir]
 
   # Get the remove objects URL from the production configuration.
-  s3_url = load_config(:PRODUCTION)[:objects_dir]
+  s3_url = load_config(:PRODUCTION_PREVIEW)[:objects_dir]
 
   # Derive the S3 endpoint from the URL, with the expectation that it has the
   # format: <protocol>://<bucket-name>.<region>.cdn.digitaloceanspaces.com

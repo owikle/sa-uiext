@@ -56,7 +56,7 @@ google-analytics-id:
 # add liquid profiler to id bottlenecks
 # profile: true
 
-exclude: [docs/, Rakefile, README.md, LICENSE, scripts/, Dockerfile, docker-compose*.yml]
+exclude: [docs/, Rakefile, README.md, LICENSE]
 
 # compress CSS output
 sass:

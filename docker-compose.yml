@@ -4,6 +4,7 @@ services:
   collectionbuilder:
     build: .
     volumes:
+      - .aws:/home/ubuntu/.aws
       - .:/home/ubuntu/collectionbuilder
     ports:
       - 4000:4000

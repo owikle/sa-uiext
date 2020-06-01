@@ -20,7 +20,7 @@ If you don't already have Docker and Docker Compose installed:
 
 #### Configure your Digital Ocean Space / AWS Credentials
 
-To make your Digital Ocean Space / AWS credentials available within the container, create a directory in this repository's root named `.aws` and place the `credentials` file described here: https://docs.aws.amazon.com/sdk-for-ruby/v3/developer-guide/setup-config.html#aws-ruby-sdk-credentials-shared within it.
+To make your Digital Ocean Space / AWS credentials available within the container, create a directory in this repository's root named `.aws` and place in it the `credentials` file described here: https://docs.aws.amazon.com/sdk-for-ruby/v3/developer-guide/setup-config.html#aws-ruby-sdk-credentials-shared
 
 [This line in `docker-compose.yml`](https://github.com/CollectionBuilder/collectionbuilder-sa_draft/blob/docker/docker-compose.yml#L7) instructs Compose to make this local `.aws` directory available within the container as `/home/ubuntu/.aws`, which is where the Ruby AWS SDK expects it to be.
 

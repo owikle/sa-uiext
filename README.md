@@ -231,7 +231,7 @@ rake load_es_bulk_data
 
 ### 6. Start the Development Server
 ```
-jekyll s -H 0.0.0.0
+bundle exec jekyll s -H 0.0.0.0
 ```
 
 

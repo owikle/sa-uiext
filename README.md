@@ -38,7 +38,7 @@ The rake tasks that we'll be using have the following dependencies:
 | generate_es_bulk_data | |
 | create_es_index | | Elasticsearch |
 | load_es_bulk_data | | Elasticsearch |
-| sync_objects | Digital Ocean Space |
+| sync_objects | | Digital Ocean Space |
 
 
 #### Install the Required Software Dependencies

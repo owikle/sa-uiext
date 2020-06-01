@@ -13,3 +13,6 @@ Gemfile.lock
 
 # Ignore the collection objects
 objects/
+
+# Ignore the AWS credentials directory
+.aws

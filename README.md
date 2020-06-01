@@ -261,7 +261,7 @@ rake load_es_bulk_data
 
 ### 6. Start the Development Server
 ```
-jekyll s -H 0.0.0.0
+bundle exec jekyll s -H 0.0.0.0
 ```
 
 
@@ -302,5 +302,5 @@ rake sync_objects[collectionbuilder]
 ### 3. Start the Production-Preview Server
 
 ```
-jekyll s -H 0.0.0.0 --config _config.yml,_config.production_preview.yml
+bundle exec jekyll s -H 0.0.0.0 --config _config.yml,_config.production_preview.yml
 ```

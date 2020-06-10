@@ -6,10 +6,10 @@
 url:
 # location on the domain
 # e.g. /digital/hjccc
-baseurl: /demo/moscon
+baseurl: /demo/uiext
 
 # url to objects folder
-digital-objects: /demo/moscon/objects
+digital-objects: /demo/uiext/objects
 
 # location of code
 source-code: https://github.com/CollectionBuilder
@@ -18,7 +18,7 @@ source-code: https://github.com/CollectionBuilder
 elasticsearch-protocol: http
 elasticsearch-host: 0.0.0.0
 elasticsearch-port: 9200
-elasticsearch-index: moscon_programs_collection
+elasticsearch-index: uiext_collection
 
 # Site settings
 title: Collection Builder CDM Skin
@@ -33,11 +33,11 @@ organization-logo-nav: https://www.lib.uidaho.edu/media/digital/bannerlogo_allwh
 
 # Collection settings
 # name of metadata file, be sure to also change page_gen data setting!
-metadata: demo_moscon
+metadata: uiext
 # page gen settings
 # "data" value must be the name of the metadata file
 page_gen:
-  - data: 'demo_moscon'
+  - data: 'uiext'
     template: 'items'
     name: 'objectid'
     dir: 'items'

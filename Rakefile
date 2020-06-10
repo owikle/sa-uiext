@@ -234,7 +234,7 @@ task :generate_es_bulk_data do
 
     # Write the action_and_meta_data line.
     doc_id = item["objectid"]
-    index_name = $collection_name_to_index_name.call(item["digital_collection"])
+    index_name = config[:elasticsearch_index]
     output_file.write("{\"index\": {\"_index\": \"#{index_name}\", \"_id\": \"#{doc_id}\"}}\n")
 
     # Write the source line.

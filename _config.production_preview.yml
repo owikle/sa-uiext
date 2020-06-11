@@ -3,6 +3,6 @@
 url: http://0.0.0.0:4000
 
 # url to production objects store
-digital-objects: https://lchs.sfo2.cdn.digitaloceanspaces.com
+digital-objects: https://collectionbuilder.sfo2.cdn.digitaloceanspaces.com
 
 exclude: [docs/, Rakefile, README.md, LICENSE, objects/]
